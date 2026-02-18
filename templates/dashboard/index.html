@@ -1,0 +1,17 @@
+{% extends 'base.html' %}
+{% block content %}
+<h1 class="text-2xl font-semibold text-primary mb-4">Dashboard</h1>
+<div class="grid md:grid-cols-3 gap-4 mb-6">
+  <div class="bg-white border border-borderc rounded p-4"><div class="text-slate-500">Total Assets</div><div class="text-2xl font-bold">{{ total_assets }}</div></div>
+  <div class="bg-white border border-borderc rounded p-4"><div class="text-slate-500">Operational</div><div class="text-2xl font-bold text-success">{{ operational_assets }}</div></div>
+  <div class="bg-white border border-borderc rounded p-4"><div class="text-slate-500">Currently Assigned</div><div class="text-2xl font-bold text-accent">{{ assigned_assets }}</div></div>
+</div>
+<div class="bg-white border border-borderc rounded p-4">
+  <h2 class="font-semibold text-card mb-3">Assets by Category</h2>
+  <ul class="space-y-2">
+    {% for row in category_counts %}
+    <li class="flex justify-between border-b border-borderc pb-1"><span>{{ row.category__name }}</span><span class="font-semibold">{{ row.total }}</span></li>
+    {% empty %}<li>No data</li>{% endfor %}
+  </ul>
+</div>
+{% endblock %}

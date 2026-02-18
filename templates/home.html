@@ -1,0 +1,10 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="bg-white border border-borderc rounded-lg p-6">
+  <h1 class="text-2xl font-semibold text-primary">Institutional IT Asset Inventory System</h1>
+  <p class="mt-2">Phase 5 includes dashboard, asset list/detail/forms, HTMX filters, and role-based UI visibility.</p>
+  {% if user.is_authenticated %}
+    <a href="{% url 'assets:dashboard' %}" class="inline-block mt-4 bg-accent text-white px-4 py-2 rounded">Open Dashboard</a>
+  {% endif %}
+</div>
+{% endblock %}
