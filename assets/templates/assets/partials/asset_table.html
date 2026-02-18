@@ -1,0 +1,28 @@
+<div class="bg-white border border-borderc rounded overflow-x-auto">
+  <table class="w-full text-sm">
+    <thead class="bg-slate-100 text-slate-700">
+      <tr>
+        <th class="text-left px-3 py-2">Internal</th>
+        <th class="text-left px-3 py-2">Patrimonial</th>
+        <th class="text-left px-3 py-2">Category</th>
+        <th class="text-left px-3 py-2">Location</th>
+        <th class="text-left px-3 py-2">Responsible</th>
+        <th class="text-left px-3 py-2">Status</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for asset in assets %}
+      <tr class="border-t border-borderc hover:bg-slate-50">
+        <td class="px-3 py-2"><a class="text-primary hover:underline" href="{% url 'assets:asset_detail' asset.pk %}">{{ asset.asset_tag_internal|default:'-' }}</a></td>
+        <td class="px-3 py-2">{{ asset.control_patrimonial|default:'-' }}</td>
+        <td class="px-3 py-2">{{ asset.category.name }}</td>
+        <td class="px-3 py-2">{{ asset.location.exact_name }}</td>
+        <td class="px-3 py-2">{{ asset.responsible_employee.first_name }} {{ asset.responsible_employee.last_name }}</td>
+        <td class="px-3 py-2">{{ asset.status.name }}</td>
+      </tr>
+      {% empty %}
+      <tr><td class="px-3 py-3" colspan="6">No assets found.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
