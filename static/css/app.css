@@ -1,0 +1,13 @@
+:root {
+  --primary: #1E3A8A;
+  --card: #334155;
+  --bg: #F1F5F9;
+  --accent: #06B6D4;
+  --success: #16A34A;
+  --error: #DC2626;
+  --border: #E2E8F0;
+}
+body { background: var(--bg); }
+.nav-brand { background: var(--primary); color: white; }
+.message.success { border-left: 4px solid var(--success); }
+.message.warning, .message.error { border-left: 4px solid var(--error); }
