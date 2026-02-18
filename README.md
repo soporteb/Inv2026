@@ -19,6 +19,8 @@ docker compose exec web python manage.py migrate
 docker compose exec web python manage.py seed_core
 docker compose exec web python manage.py seed_demo
 ```
+> Note: `.env.example` uses `POSTGRES_HOST=localhost` for host-machine runs; Docker web service overrides it to `db`.
+
 Open: http://localhost:8000
 
 ## Non-Docker local run
@@ -52,6 +54,13 @@ python manage.py seed_core
 python manage.py seed_demo
 python manage.py runserver
 ```
+
+### Windows PowerShell quick check
+If you see `OperationalError: [Errno 11001] getaddrinfo failed`, verify your shell is using:
+```powershell
+$env:POSTGRES_HOST = "localhost"
+```
+(That error usually means `POSTGRES_HOST=db` was used outside Docker.)
 
 ## Demo users (dev only)
 - admin / Admin123!
