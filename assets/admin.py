@@ -8,9 +8,14 @@ from .models import (
     AssetSensitiveData,
     CameraDetails,
     ComputerSpecs,
+    ConsumableItem,
+    ConsumableMovement,
+    DecommissionRecord,
+    MaintenanceRecord,
     NetworkDeviceDetails,
     PeripheralDetails,
     PrinterDetails,
+    ReplacementRecord,
     TeleconferenceDetails,
 )
 
@@ -25,3 +30,8 @@ admin.site.register(PrinterDetails)
 admin.site.register(NetworkDeviceDetails)
 admin.site.register(TeleconferenceDetails)
 admin.site.register(CameraDetails)
+admin.site.register(MaintenanceRecord)
+admin.site.register(ReplacementRecord)
+admin.site.register(DecommissionRecord)
+admin.site.register(ConsumableItem)
+admin.site.register(ConsumableMovement)

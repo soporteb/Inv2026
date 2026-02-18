@@ -67,10 +67,8 @@ $env:POSTGRES_HOST = "localhost"
 - tech / Tech123!
 - viewer / Viewer123!
 
-## Phase 5 scope
-- M1: auth groups and role utilities with role-aware UI flags.
-- M2/M3: existing admin-only catalog and employee CMS views.
-- M4/M5/M6 UI: dashboard, assets list/detail/form screens.
-- HTMX partial refresh for asset list filtering.
-- Sensitive-data visibility preserved: non-admin gets only padlock/license indicators; admin may view values.
-- Tailwind-based UI layer using requested palette (primary/card/bg/accent/success/error/border).
+## Phase 6 scope
+- M7 Operations: maintenance, replacement, and decommission records with admin/technician forms.
+- M8 Consumables: items + movement kardex with stock guardrails (no egress above stock).
+- M9 Reports: safe asset report view + CSV export exposing only non-sensitive fields and indicators.
+- Dashboard expanded with operations and low-stock metrics.

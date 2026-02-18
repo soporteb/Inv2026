@@ -35,4 +35,11 @@
     {% endif %}
   </div>
 </div>
+
+<div class="mt-4 bg-white border border-borderc rounded p-4">
+  <p class="font-semibold text-card mb-2">Operations</p>
+  <p><span class="font-semibold">Maintenance records:</span> {{ maintenance_records|length }}</p>
+  <p><span class="font-semibold">Replacement records:</span> {{ replacement_records|length }}</p>
+  <p><span class="font-semibold">Decommissioned:</span> {{ decommission_record|yesno:'Yes,No' }}</p>
+</div>
 {% endblock %}

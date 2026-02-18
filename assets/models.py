@@ -235,3 +235,103 @@ class CameraDetails(models.Model):
     asset = models.OneToOneField(Asset, on_delete=models.CASCADE, related_name="camera_details")
     resolution = models.CharField(max_length=50, blank=True)
     field_of_view = models.PositiveSmallIntegerField(default=0)
+
+class MaintenanceRecord(models.Model):
+    class MaintenanceType(models.TextChoices):
+        PREVENTIVE = "PREVENTIVE", "Preventive"
+        CORRECTIVE = "CORRECTIVE", "Corrective"
+
+    class MaintenanceStatus(models.TextChoices):
+        OPEN = "OPEN", "Open"
+        IN_PROGRESS = "IN_PROGRESS", "In Progress"
+        CLOSED = "CLOSED", "Closed"
+
+    asset = models.ForeignKey(Asset, on_delete=models.CASCADE, related_name="maintenance_records")
+    maintenance_type = models.CharField(max_length=20, choices=MaintenanceType.choices)
+    status = models.CharField(max_length=20, choices=MaintenanceStatus.choices, default=MaintenanceStatus.OPEN)
+    description = models.TextField()
+    opened_at = models.DateTimeField(auto_now_add=True)
+    closed_at = models.DateTimeField(null=True, blank=True)
+    performed_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True)
+
+
+class ReplacementRecord(models.Model):
+    asset = models.ForeignKey(Asset, on_delete=models.CASCADE, related_name="replacement_records")
+    replacement_asset = models.ForeignKey(Asset, on_delete=models.SET_NULL, null=True, blank=True, related_name="replaced_by_records")
+    reason = models.TextField()
+    replacement_date = models.DateField()
+    approved_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True)
+
+
+class DecommissionRecord(models.Model):
+    asset = models.OneToOneField(Asset, on_delete=models.CASCADE, related_name="decommission_record")
+    reason = models.TextField()
+    decommission_date = models.DateField()
+    disposal_method = models.CharField(max_length=120, blank=True)
+    certificate_code = models.CharField(max_length=120, blank=True)
+    approved_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True)
+
+
+class ConsumableItem(models.Model):
+    name = models.CharField(max_length=120)
+    sku = models.CharField(max_length=50, unique=True)
+    unit = models.CharField(max_length=30, default="unit")
+    min_stock = models.PositiveIntegerField(default=0)
+    is_active = models.BooleanField(default=True)
+
+    class Meta:
+        ordering = ["name"]
+
+    def __str__(self):
+        return f"{self.name} ({self.sku})"
+
+    @property
+    def current_stock(self) -> int:
+        inbound = sum(self.movements.filter(movement_type=ConsumableMovement.MovementType.IN).values_list("quantity", flat=True))
+        outbound = sum(self.movements.filter(movement_type=ConsumableMovement.MovementType.OUT).values_list("quantity", flat=True))
+        adjustments = sum(self.movements.filter(movement_type=ConsumableMovement.MovementType.ADJUSTMENT).values_list("quantity", flat=True))
+        return int(inbound - outbound + adjustments)
+
+    @property
+    def is_low_stock(self) -> bool:
+        return self.current_stock <= self.min_stock
+
+
+class ConsumableMovement(models.Model):
+    class MovementType(models.TextChoices):
+        IN = "IN", "Ingress"
+        OUT = "OUT", "Egress"
+        ADJUSTMENT = "ADJUSTMENT", "Adjustment"
+
+    item = models.ForeignKey(ConsumableItem, on_delete=models.CASCADE, related_name="movements")
+    movement_type = models.CharField(max_length=20, choices=MovementType.choices)
+    quantity = models.IntegerField()
+    unit_cost = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    reason = models.CharField(max_length=180)
+    reference = models.CharField(max_length=120, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def clean(self):
+        errors = {}
+        if self.quantity <= 0:
+            errors["quantity"] = "Quantity must be greater than zero."
+
+        if self.movement_type == self.MovementType.OUT and self.item_id:
+            current = self.item.current_stock
+            if self.pk:
+                prev = ConsumableMovement.objects.filter(pk=self.pk).first()
+                if prev and prev.movement_type == self.MovementType.OUT:
+                    current += prev.quantity
+            if self.quantity > current:
+                errors["quantity"] = "Cannot egress more than current stock."
+
+        if errors:
+            raise ValidationError(errors)
+
+    def save(self, *args, **kwargs):
+        self.full_clean()
+        super().save(*args, **kwargs)

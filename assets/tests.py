@@ -223,3 +223,38 @@ class Phase4CategoryRuleTests(TestCase):
             responsible_employee=self.responsible,
         )
         asset.full_clean()
+
+from .models import ConsumableItem, ConsumableMovement
+from .reports import get_asset_safe_rows
+
+
+class Phase6ConsumablesAndReportsTests(TestCase):
+    def setUp(self):
+        self.category = Category.objects.create(name="Printer")
+        self.location = Location.objects.create(site="Main", floor="1", type="ROOM", exact_name="Warehouse")
+        self.status = Status.objects.create(name="Operational")
+        self.reason = AssignmentReason.objects.create(name="Support")
+        self.responsible = Employee.objects.create(dni="99999999", first_name="Carlos", last_name="Diaz", worker_type=Employee.WorkerType.CAS)
+        self.asset = Asset.objects.create(
+            category=self.category,
+            location=self.location,
+            status=self.status,
+            asset_tag_internal="INT-PRN-001",
+            responsible_employee=self.responsible,
+        )
+        AssetSensitiveData.objects.create(asset=self.asset, cpu_padlock_key="PAD-HIDDEN", license_secret="LIC-HIDDEN")
+
+    def test_consumable_out_cannot_exceed_stock(self):
+        item = ConsumableItem.objects.create(name="Toner", sku="TON-01", min_stock=2)
+        ConsumableMovement.objects.create(item=item, movement_type=ConsumableMovement.MovementType.IN, quantity=5, reason="Initial stock")
+        with self.assertRaises(ValidationError):
+            ConsumableMovement.objects.create(item=item, movement_type=ConsumableMovement.MovementType.OUT, quantity=8, reason="Usage")
+
+    def test_safe_report_rows_do_not_include_sensitive_values(self):
+        rows = get_asset_safe_rows()
+        self.assertGreaterEqual(len(rows), 1)
+        row = rows[0]
+        self.assertIn("has_padlock_key", row)
+        self.assertIn("has_license", row)
+        self.assertNotIn("cpu_padlock_key", row)
+        self.assertNotIn("license_secret", row)

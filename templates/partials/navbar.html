@@ -5,6 +5,9 @@
       {% if user.is_authenticated %}
         <a class="hover:text-accent" href="{% url 'assets:dashboard' %}">Dashboard</a>
         <a class="hover:text-accent" href="{% url 'assets:asset_list' %}">Assets</a>
+        <a class="hover:text-accent" href="{% url 'assets:maintenance_list' %}">Operations</a>
+        <a class="hover:text-accent" href="{% url 'assets:consumable_list' %}">Consumables</a>
+        <a class="hover:text-accent" href="{% url 'assets:asset_report' %}">Reports</a>
         {% if is_admin_user %}
           <a class="hover:text-accent" href="/locations/">Locations</a>
           <a class="hover:text-accent" href="/employees/">Employees</a>
