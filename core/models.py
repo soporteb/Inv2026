@@ -23,7 +23,7 @@ class Location(TimeStampedModel):
         return self.exact_name
 
     def safe_delete(self) -> bool:
-        if self.usages.exists():
+        if self.usages.exists() or self.assets.exists():
             self.is_active = False
             self.save(update_fields=["is_active", "updated_at"])
             return False
