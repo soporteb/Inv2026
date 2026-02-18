@@ -1,0 +1,17 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="flex items-center justify-between mb-4">
+  <h1 class="text-2xl font-semibold text-primary">Safe Asset Report</h1>
+  <a href="{% url 'assets:asset_report_csv' %}" class="bg-accent text-white px-4 py-2 rounded">Export CSV</a>
+</div>
+<div class="bg-white border border-borderc rounded overflow-x-auto">
+  <table class="w-full text-sm">
+    <thead class="bg-slate-100"><tr><th class="px-3 py-2 text-left">ID</th><th class="px-3 py-2 text-left">Category</th><th class="px-3 py-2 text-left">Location</th><th class="px-3 py-2 text-left">Responsible</th><th class="px-3 py-2 text-left">Assigned</th><th class="px-3 py-2 text-left">Padlock</th><th class="px-3 py-2 text-left">License</th></tr></thead>
+    <tbody>
+      {% for row in rows %}
+      <tr class="border-t border-borderc"><td class="px-3 py-2">{{ row.id }}</td><td class="px-3 py-2">{{ row.category }}</td><td class="px-3 py-2">{{ row.location }}</td><td class="px-3 py-2">{{ row.responsible }}</td><td class="px-3 py-2">{{ row.current_assigned|default:'-' }}</td><td class="px-3 py-2">{{ row.has_padlock_key }}</td><td class="px-3 py-2">{{ row.has_license }}</td></tr>
+      {% empty %}<tr><td class="px-3 py-2" colspan="7">No rows.</td></tr>{% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}
