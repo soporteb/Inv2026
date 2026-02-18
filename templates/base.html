@@ -28,9 +28,9 @@
   <link rel="stylesheet" href="/static/css/app.css">
   <script src="https://unpkg.com/htmx.org@1.9.12"></script>
 </head>
-<body class="bg-bg text-slate-800 font-sans min-h-screen">
-  {% include 'partials/navbar.html' %}
-  <main class="max-w-7xl mx-auto p-6">
+<body class="{% block body_class %}bg-bg text-slate-800 font-sans min-h-screen{% endblock %}">
+  {% block header %}{% include 'partials/navbar.html' %}{% endblock %}
+  <main class="{% block main_class %}max-w-7xl mx-auto p-6{% endblock %}">
     {% if messages %}
       <div class="space-y-2 mb-4">
       {% for message in messages %}
