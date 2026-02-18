@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Institutional IT Asset Inventory</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            primary: '#1E3A8A',
+            card: '#334155',
+            bg: '#F1F5F9',
+            accent: '#06B6D4',
+            success: '#16A34A',
+            error: '#DC2626',
+            borderc: '#E2E8F0'
+          },
+          fontFamily: {
+            sans: ['Inter', 'Roboto', 'system-ui', 'sans-serif']
+          }
+        }
+      }
+    }
+  </script>
+  <link rel="stylesheet" href="/static/css/app.css">
+  <script src="https://unpkg.com/htmx.org@1.9.12"></script>
+</head>
+<body class="bg-bg text-slate-800 font-sans min-h-screen">
+  {% include 'partials/navbar.html' %}
+  <main class="max-w-7xl mx-auto p-6">
+    {% if messages %}
+      <div class="space-y-2 mb-4">
+      {% for message in messages %}
+        <div class="rounded border-l-4 px-3 py-2 bg-white {% if message.tags == 'success' %}border-success{% else %}border-error{% endif %}">{{ message }}</div>
+      {% endfor %}
+      </div>
+    {% endif %}
+    {% block content %}{% endblock %}
+  </main>
+</body>
+</html>
