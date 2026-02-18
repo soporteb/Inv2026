@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Institutional IT Asset Inventory</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            primary: '#1E3A8A',
+            card: '#334155',
+            bg: '#F1F5F9',
+            accent: '#06B6D4',
+            success: '#16A34A',
+            error: '#DC2626',
+            borderc: '#E2E8F0'
+          },
+          fontFamily: {
+            sans: ['Inter', 'Roboto', 'system-ui', 'sans-serif']
+          }
+        }
+      }
+    }
+  </script>
+  <link rel="stylesheet" href="/static/css/app.css">
+  <script src="https://unpkg.com/htmx.org@1.9.12"></script>
+</head>
+<body class="{% block body_class %}bg-bg text-slate-800 font-sans min-h-screen{% endblock %}">
+  {% if user.is_authenticated %}
+  <div class="min-h-screen flex">
+    <aside class="w-64 bg-primary text-white flex flex-col">
+      <div class="px-5 py-5 border-b border-white/20">
+        <div class="text-2xl font-bold">AssetManager</div>
+      </div>
+      <nav class="flex-1 px-3 py-4 space-y-1 text-sm">
+        <a class="block px-3 py-2 rounded hover:bg-white/10" href="{% url 'assets:dashboard' %}">Dashboard</a>
+        <a class="block px-3 py-2 rounded hover:bg-white/10" href="{% url 'assets:asset_list' %}">Assets</a>
+        <a class="block px-3 py-2 rounded hover:bg-white/10" href="{% url 'assets:assignment_list' %}">Assignments</a>
+        <a class="block px-3 py-2 rounded hover:bg-white/10" href="{% url 'assets:maintenance_list' %}">Maintenance</a>
+        <a class="block px-3 py-2 rounded hover:bg-white/10" href="{% url 'assets:replacement_create' %}">Replacements</a>
+        <a class="block px-3 py-2 rounded hover:bg-white/10" href="{% url 'assets:decommission_create' %}">Decommission</a>
+        <a class="block px-3 py-2 rounded hover:bg-white/10" href="/locations/">Locations</a>
+        <a class="block px-3 py-2 rounded hover:bg-white/10" href="/employees/">Employees</a>
+        <a class="block px-3 py-2 rounded hover:bg-white/10" href="{% url 'assets:consumable_list' %}">Consumables</a>
+        <a class="block px-3 py-2 rounded hover:bg-white/10" href="{% url 'assets:asset_report' %}">Reports</a>
+      </nav>
+      <div class="px-4 py-4 border-t border-white/20">
+        <form method="post" action="{% url 'logout' %}">{% csrf_token %}
+          <button type="submit" class="w-full text-left px-3 py-2 rounded hover:bg-white/10">Sign Out</button>
+        </form>
+      </div>
+    </aside>
+
+    <div class="flex-1 min-w-0">
+      <header class="bg-white border-b border-borderc px-6 py-4 flex items-center justify-between">
+        <h1 class="text-3xl font-semibold text-card">{% block page_title %}Dashboard{% endblock %}</h1>
+        <div class="flex items-center gap-3 text-sm text-slate-600">
+          <span class="font-semibold">{{ user.username }}</span>
+        </div>
+      </header>
+
+      <main class="p-6">
+        {% if messages %}
+          <div class="space-y-2 mb-4">
+          {% for message in messages %}
+            <div class="rounded border-l-4 px-3 py-2 bg-white {% if message.tags == 'success' %}border-success{% else %}border-error{% endif %}">{{ message }}</div>
+          {% endfor %}
+          </div>
+        {% endif %}
+        {% block content %}{% endblock %}
+      </main>
+    </div>
+  </div>
+  {% else %}
+    {% block header %}{% endblock %}
+    <main class="{% block main_class %}max-w-7xl mx-auto p-6{% endblock %}">
+      {% if messages %}
+        <div class="space-y-2 mb-4">
+        {% for message in messages %}
+          <div class="rounded border-l-4 px-3 py-2 bg-white {% if message.tags == 'success' %}border-success{% else %}border-error{% endif %}">{{ message }}</div>
+        {% endfor %}
+        </div>
+      {% endif %}
+      {% block content %}{% endblock %}
+    </main>
+  {% endif %}
+</body>
+</html>

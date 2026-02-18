@@ -1,0 +1,45 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="flex justify-between mb-4">
+  <h1 class="text-2xl font-semibold text-primary">Asset Detail</h1>
+  {% if can_manage_assets %}
+  <a href="{% url 'assets:asset_edit' asset.pk %}" class="bg-card text-white px-4 py-2 rounded">Edit</a>
+  {% endif %}
+</div>
+
+<div class="grid md:grid-cols-2 gap-4">
+  <div class="bg-white border border-borderc rounded p-4 space-y-1">
+    <p><span class="font-semibold">Category:</span> {{ asset.category.name }}</p>
+    <p><span class="font-semibold">Location:</span> {{ asset.location.exact_name }}</p>
+    <p><span class="font-semibold">Responsible:</span> {{ asset.responsible_employee.first_name }} {{ asset.responsible_employee.last_name }}</p>
+    <p><span class="font-semibold">Current Assigned User:</span>
+      {% if current_assignment and current_assignment.assigned_employee %}
+        {{ current_assignment.assigned_employee.first_name }} {{ current_assignment.assigned_employee.last_name }}
+      {% else %}
+        -
+      {% endif %}
+    </p>
+    <p><span class="font-semibold">Internal:</span> {{ asset.asset_tag_internal|default:'-' }}</p>
+    <p><span class="font-semibold">Patrimonial:</span> {{ asset.control_patrimonial|default:'-' }}</p>
+    <p><span class="font-semibold">Serial:</span> {{ asset.serial|default:'-' }}</p>
+  </div>
+
+  <div class="bg-white border border-borderc rounded p-4 space-y-1">
+    <p class="font-semibold text-card">Sensitive Indicators</p>
+    <p><span class="font-semibold">Padlock:</span> {{ sensitive.has_padlock_key|yesno:'Yes,No' }}</p>
+    <p><span class="font-semibold">License:</span> {{ sensitive.has_license|yesno:'Yes,No' }}</p>
+    {% if is_admin and sensitive.cpu_padlock_key %}
+    <hr class="my-2">
+    <p><span class="font-semibold">CPU Padlock Key:</span> {{ sensitive.cpu_padlock_key }}</p>
+    <p><span class="font-semibold">License Secret:</span> {{ sensitive.license_secret }}</p>
+    {% endif %}
+  </div>
+</div>
+
+<div class="mt-4 bg-white border border-borderc rounded p-4">
+  <p class="font-semibold text-card mb-2">Operations</p>
+  <p><span class="font-semibold">Maintenance records:</span> {{ maintenance_records|length }}</p>
+  <p><span class="font-semibold">Replacement records:</span> {{ replacement_records|length }}</p>
+  <p><span class="font-semibold">Decommissioned:</span> {{ decommission_record|yesno:'Yes,No' }}</p>
+</div>
+{% endblock %}
