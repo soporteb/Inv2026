@@ -161,3 +161,65 @@ class AssignmentFlowTests(TestCase):
                 reason=self.reason_initial,
                 is_current=True,
             )
+
+
+class Phase4CategoryRuleTests(TestCase):
+    def setUp(self):
+        self.location = Location.objects.create(site="Main", floor="1", type="ROOM", exact_name="Aula 01")
+        self.status = Status.objects.create(name="Operational")
+        self.responsible = Employee.objects.create(
+            dni="88888888", first_name="Marina", last_name="Soto", worker_type=Employee.WorkerType.NOMBRADO
+        )
+
+    def _mk_category(self, name: str):
+        return Category.objects.create(name=name)
+
+    def test_teleconference_requires_control_patrimonial(self):
+        category = self._mk_category("Teleconference")
+        asset = Asset(
+            category=category,
+            location=self.location,
+            status=self.status,
+            asset_tag_internal="INT-TEL-001",
+            responsible_employee=self.responsible,
+        )
+        with self.assertRaises(ValidationError):
+            asset.full_clean()
+
+    def test_projector_requires_control_patrimonial(self):
+        category = self._mk_category("Projector")
+        asset = Asset(
+            category=category,
+            location=self.location,
+            status=self.status,
+            asset_tag_internal="INT-PRO-001",
+            responsible_employee=self.responsible,
+        )
+        with self.assertRaises(ValidationError):
+            asset.full_clean()
+
+    def test_webcam_requires_internal_code(self):
+        category = self._mk_category("Webcam")
+        asset = Asset(
+            category=category,
+            location=self.location,
+            status=self.status,
+            control_patrimonial="CP-WEBCAM-1",
+            acquisition_date=date.today(),
+            responsible_employee=self.responsible,
+        )
+        with self.assertRaises(ValidationError):
+            asset.full_clean()
+
+    def test_required_control_category_passes_with_control(self):
+        category = self._mk_category("Sound Console")
+        asset = Asset(
+            category=category,
+            location=self.location,
+            status=self.status,
+            asset_tag_internal="INT-SOU-001",
+            control_patrimonial="CP-SOU-1",
+            acquisition_date=date.today(),
+            responsible_employee=self.responsible,
+        )
+        asset.full_clean()

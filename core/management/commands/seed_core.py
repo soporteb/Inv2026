@@ -22,7 +22,7 @@ class Command(BaseCommand):
                 defaults={"site": "Main Campus", "floor": "N/A", "type": "ROOM", "is_active": True},
             )
 
-        for name in ["CPU", "Laptop", "Server", "Printer", "Switch", "Access Point", "Webcam", "Headphones", "Microphone", "PC Speaker", "Teleconference"]:
+        for name in ["CPU", "Laptop", "Server", "Printer", "Switch", "Access Point", "Webcam", "Headphones", "Microphone", "PC Speaker", "Teleconference", "Projector", "Interactive Whiteboard", "Air Conditioner", "Biometric Clock", "Tablet", "Sound Console"]:
             Category.objects.get_or_create(name=name)
 
         for name in ["Operational", "In Maintenance", "Inoperative", "Decommissioned"]:

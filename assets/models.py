@@ -7,6 +7,24 @@ from core.models import AssignmentReason, Category, Location, Status
 from employees.models import Employee
 
 
+REQUIRES_CONTROL_CATEGORIES = {
+    "Teleconference",
+    "Projector",
+    "Interactive Whiteboard",
+    "Air Conditioner",
+    "Biometric Clock",
+    "Tablet",
+    "Sound Console",
+}
+
+REQUIRES_INTERNAL_CODE_CATEGORIES = {
+    "Webcam",
+    "Headphones",
+    "Microphone",
+    "PC Speaker",
+}
+
+
 class Asset(models.Model):
     class OwnershipType(models.TextChoices):
         INSTITUTION = "INSTITUTION", "Institution"
@@ -63,6 +81,13 @@ class Asset(models.Model):
             errors["responsible_employee"] = "Responsible employee is required."
         elif self.responsible_employee.worker_type not in {Employee.WorkerType.NOMBRADO, Employee.WorkerType.CAS}:
             errors["responsible_employee"] = "Responsible employee must be NOMBRADO or CAS."
+
+        category_name = self.category.name if self.category_id else None
+        if category_name in REQUIRES_CONTROL_CATEGORIES and not self.control_patrimonial:
+            errors["control_patrimonial"] = f"{category_name} requires control patrimonial."
+
+        if category_name in REQUIRES_INTERNAL_CODE_CATEGORIES and not self.asset_tag_internal:
+            errors["asset_tag_internal"] = f"{category_name} requires internal code (asset_tag_internal)."
 
         if errors:
             raise ValidationError(errors)
@@ -152,3 +177,61 @@ class AssetEvent(models.Model):
     description = models.TextField(blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True)
+
+
+class AssetLicense(models.Model):
+    asset = models.ForeignKey(Asset, on_delete=models.CASCADE, related_name="licenses")
+    product_name = models.CharField(max_length=120)
+    vendor = models.CharField(max_length=120, blank=True)
+    seats = models.PositiveIntegerField(default=1)
+    expires_on = models.DateField(null=True, blank=True)
+    is_active = models.BooleanField(default=True)
+    notes = models.TextField(blank=True)
+
+    @property
+    def has_secret(self) -> bool:
+        return self.asset.has_license
+
+
+class ComputerSpecs(models.Model):
+    asset = models.OneToOneField(Asset, on_delete=models.CASCADE, related_name="computer_specs")
+    cpu_model = models.CharField(max_length=120)
+    ram_gb = models.PositiveSmallIntegerField()
+    storage_gb = models.PositiveIntegerField()
+    os_name = models.CharField(max_length=120, blank=True)
+    ip_address = models.GenericIPAddressField(null=True, blank=True)
+    mac_address = models.CharField(max_length=17, blank=True)
+
+
+class PeripheralDetails(models.Model):
+    asset = models.OneToOneField(Asset, on_delete=models.CASCADE, related_name="peripheral_details")
+    brand = models.CharField(max_length=120, blank=True)
+    model = models.CharField(max_length=120, blank=True)
+    connectivity = models.CharField(max_length=60, blank=True)
+
+
+class PrinterDetails(models.Model):
+    asset = models.OneToOneField(Asset, on_delete=models.CASCADE, related_name="printer_details")
+    print_technology = models.CharField(max_length=50, blank=True)
+    ppm = models.PositiveSmallIntegerField(default=0)
+    supports_duplex = models.BooleanField(default=False)
+
+
+class NetworkDeviceDetails(models.Model):
+    asset = models.OneToOneField(Asset, on_delete=models.CASCADE, related_name="network_details")
+    ports = models.PositiveSmallIntegerField(default=0)
+    managed = models.BooleanField(default=False)
+    wifi_standard = models.CharField(max_length=50, blank=True)
+
+
+class TeleconferenceDetails(models.Model):
+    asset = models.OneToOneField(Asset, on_delete=models.CASCADE, related_name="teleconference_details")
+    camera_resolution = models.CharField(max_length=50, blank=True)
+    microphone_count = models.PositiveSmallIntegerField(default=0)
+    speaker_power_watts = models.PositiveSmallIntegerField(default=0)
+
+
+class CameraDetails(models.Model):
+    asset = models.OneToOneField(Asset, on_delete=models.CASCADE, related_name="camera_details")
+    resolution = models.CharField(max_length=50, blank=True)
+    field_of_view = models.PositiveSmallIntegerField(default=0)
