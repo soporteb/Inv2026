@@ -1,7 +1,9 @@
 import csv
 
+from django.contrib import messages
+from django.core.exceptions import ValidationError
 from django.db.models import Count, Q
-from django.http import HttpResponse
+from django.http import HttpResponse, HttpResponseRedirect
 from django.urls import reverse_lazy
 from django.views.generic import CreateView, DetailView, ListView, TemplateView, UpdateView
 
@@ -9,15 +11,18 @@ from accounts.mixins import AssetManageRequiredMixin, AssetViewRequiredMixin
 from accounts.roles import is_admin
 
 from .forms import (
+    AssignmentForm,
     AssetForm,
     ConsumableItemForm,
     ConsumableMovementForm,
     DecommissionForm,
     MaintenanceForm,
+    ReassignmentForm,
     ReplacementForm,
 )
-from .models import Asset, ConsumableItem, ConsumableMovement, DecommissionRecord, MaintenanceRecord, ReplacementRecord
+from .models import Asset, AssetAssignment, ConsumableItem, ConsumableMovement, DecommissionRecord, MaintenanceRecord, ReplacementRecord
 from .reports import get_asset_safe_rows
+from .services import assign_asset, reassign_asset
 
 
 class DashboardView(AssetViewRequiredMixin, TemplateView):
@@ -96,6 +101,57 @@ class AssetUpdateView(AssetManageRequiredMixin, UpdateView):
     form_class = AssetForm
     template_name = "assets/asset_form.html"
     success_url = reverse_lazy("assets:asset_list")
+
+
+class AssignmentListView(AssetViewRequiredMixin, ListView):
+    model = AssetAssignment
+    template_name = "assets/assignment_list.html"
+    context_object_name = "assignments"
+
+    def get_queryset(self):
+        return AssetAssignment.objects.select_related("asset", "assigned_employee", "reason").order_by("-start_at")
+
+
+class AssignmentCreateView(AssetManageRequiredMixin, CreateView):
+    model = AssetAssignment
+    form_class = AssignmentForm
+    template_name = "assets/assignment_form.html"
+    success_url = reverse_lazy("assets:assignment_list")
+
+    def form_valid(self, form):
+        try:
+            assign_asset(
+                asset=form.cleaned_data["asset"],
+                reason=form.cleaned_data["reason"],
+                assigned_employee=form.cleaned_data["assigned_employee"],
+                actor=self.request.user,
+            )
+        except ValidationError as exc:
+            form.add_error(None, exc)
+            return self.form_invalid(form)
+        messages.success(self.request, "Assignment created.")
+        return HttpResponseRedirect(self.get_success_url())
+
+
+class ReassignmentCreateView(AssetManageRequiredMixin, CreateView):
+    model = AssetAssignment
+    form_class = ReassignmentForm
+    template_name = "assets/reassignment_form.html"
+    success_url = reverse_lazy("assets:assignment_list")
+
+    def form_valid(self, form):
+        try:
+            reassign_asset(
+                asset=form.cleaned_data["asset"],
+                reason=form.cleaned_data["reason"],
+                new_assigned_employee=form.cleaned_data["assigned_employee"],
+                actor=self.request.user,
+            )
+        except ValidationError as exc:
+            form.add_error(None, exc)
+            return self.form_invalid(form)
+        messages.success(self.request, "Asset reassigned.")
+        return HttpResponseRedirect(self.get_success_url())
 
 
 class MaintenanceListView(AssetViewRequiredMixin, ListView):

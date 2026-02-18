@@ -1,6 +1,8 @@
 from django.urls import path
 
 from .views import (
+    AssignmentCreateView,
+    AssignmentListView,
     AssetCreateView,
     AssetDetailView,
     AssetListView,
@@ -15,6 +17,7 @@ from .views import (
     DecommissionCreateView,
     MaintenanceCreateView,
     MaintenanceListView,
+    ReassignmentCreateView,
     ReplacementCreateView,
 )
 
@@ -26,6 +29,10 @@ urlpatterns = [
     path("create/", AssetCreateView.as_view(), name="asset_create"),
     path("<int:pk>/", AssetDetailView.as_view(), name="asset_detail"),
     path("<int:pk>/edit/", AssetUpdateView.as_view(), name="asset_edit"),
+
+    path("assignments/", AssignmentListView.as_view(), name="assignment_list"),
+    path("assignments/create/", AssignmentCreateView.as_view(), name="assignment_create"),
+    path("assignments/reassign/", ReassignmentCreateView.as_view(), name="reassignment_create"),
 
     path("maintenance/", MaintenanceListView.as_view(), name="maintenance_list"),
     path("maintenance/create/", MaintenanceCreateView.as_view(), name="maintenance_create"),

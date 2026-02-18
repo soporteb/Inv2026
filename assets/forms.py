@@ -2,6 +2,7 @@ from django import forms
 
 from .models import (
     Asset,
+    AssetAssignment,
     ConsumableItem,
     ConsumableMovement,
     DecommissionRecord,
@@ -56,3 +57,16 @@ class ConsumableMovementForm(forms.ModelForm):
     class Meta:
         model = ConsumableMovement
         fields = ["item", "movement_type", "quantity", "unit_cost", "reason", "reference"]
+
+
+class AssignmentForm(forms.ModelForm):
+    class Meta:
+        model = AssetAssignment
+        fields = ["asset", "assigned_employee", "reason"]
+
+
+class ReassignmentForm(forms.ModelForm):
+    class Meta:
+        model = AssetAssignment
+        fields = ["asset", "assigned_employee", "reason"]
+        labels = {"assigned_employee": "new assigned employee"}
