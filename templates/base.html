@@ -63,20 +63,11 @@
       </header>
 
       <main class="p-6">
-        {% if messages %}
-          <div class="space-y-2 mb-4">
-          {% for message in messages %}
-            <div class="rounded border-l-4 px-3 py-2 bg-white {% if message.tags == 'success' %}border-success{% else %}border-error{% endif %}">{{ message }}</div>
-          {% endfor %}
-          </div>
-        {% endif %}
-        {% block content %}{% endblock %}
-      </main>
-    </div>
-  </div>
   {% else %}
     {% block header %}{% endblock %}
     <main class="{% block main_class %}max-w-7xl mx-auto p-6{% endblock %}">
+  {% endif %}
+
       {% if messages %}
         <div class="space-y-2 mb-4">
         {% for message in messages %}
@@ -84,8 +75,13 @@
         {% endfor %}
         </div>
       {% endif %}
+
       {% block content %}{% endblock %}
     </main>
+
+  {% if user.is_authenticated %}
+    </div>
+  </div>
   {% endif %}
 </body>
 </html>
