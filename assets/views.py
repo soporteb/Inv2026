@@ -130,7 +130,7 @@ class AssignmentCreateView(AssetManageRequiredMixin, CreateView):
             form.add_error(None, exc)
             return self.form_invalid(form)
         messages.success(self.request, "Assignment created.")
-        return HttpResponseRedirect(self.get_success_url())
+        return HttpResponseRedirect(str(self.success_url))
 
 
 class ReassignmentCreateView(AssetManageRequiredMixin, CreateView):
@@ -151,7 +151,7 @@ class ReassignmentCreateView(AssetManageRequiredMixin, CreateView):
             form.add_error(None, exc)
             return self.form_invalid(form)
         messages.success(self.request, "Asset reassigned.")
-        return HttpResponseRedirect(self.get_success_url())
+        return HttpResponseRedirect(str(self.success_url))
 
 
 class MaintenanceListView(AssetViewRequiredMixin, ListView):
