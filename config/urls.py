@@ -10,4 +10,5 @@ urlpatterns = [
     path("", TemplateView.as_view(template_name="home.html"), name="home"),
     path("locations/", include("core.urls")),
     path("employees/", include("employees.urls")),
+    path("assets/", include("assets.urls")),
 ]

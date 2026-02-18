@@ -17,3 +17,19 @@ def has_role(user, role_name: str) -> bool:
 
 def is_admin(user) -> bool:
     return user.is_superuser or has_role(user, ADMIN)
+
+
+def is_technician(user) -> bool:
+    return has_role(user, TECHNICIAN)
+
+
+def is_viewer(user) -> bool:
+    return has_role(user, VIEWER)
+
+
+def can_manage_assets(user) -> bool:
+    return is_admin(user) or is_technician(user)
+
+
+def can_view_assets(user) -> bool:
+    return is_admin(user) or is_technician(user) or is_viewer(user)

@@ -67,11 +67,10 @@ $env:POSTGRES_HOST = "localhost"
 - tech / Tech123!
 - viewer / Viewer123!
 
-## Phase 4 scope
-- M1: auth groups and role utilities.
-- M2: core catalog models + Location CRUD with safe deactivation on delete if referenced by usage or assets.
-- M3: Employee model + admin and CMS CRUD.
-- M4 (extended): Asset category rules + detailed models (`ComputerSpecs`, `PeripheralDetails`, `PrinterDetails`, `NetworkDeviceDetails`, `TeleconferenceDetails`, `CameraDetails`) and `AssetLicense` metadata model.
-- M5: assignment flows with atomic reassignment and single-current-assignment constraint.
-- M6: assignment audit events (ASSIGNED/REASSIGNED) emitted by services.
-- Seed commands: `seed_core`, `seed_demo`, `create_demo_users`.
+## Phase 5 scope
+- M1: auth groups and role utilities with role-aware UI flags.
+- M2/M3: existing admin-only catalog and employee CMS views.
+- M4/M5/M6 UI: dashboard, assets list/detail/form screens.
+- HTMX partial refresh for asset list filtering.
+- Sensitive-data visibility preserved: non-admin gets only padlock/license indicators; admin may view values.
+- Tailwind-based UI layer using requested palette (primary/card/bg/accent/success/error/border).
