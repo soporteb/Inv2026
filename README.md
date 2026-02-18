@@ -67,9 +67,11 @@ $env:POSTGRES_HOST = "localhost"
 - tech / Tech123!
 - viewer / Viewer123!
 
-## Phase 2 scope
+## Phase 3 scope
 - M1: auth groups and role utilities.
 - M2: core catalog models + Location CRUD with safe deactivation on delete if referenced by usage or assets.
 - M3: Employee model + admin and CMS CRUD.
-- M4 (core): Asset, AssetSensitiveData, AssetAssignment, AssetEvent with validation and DB constraints.
+- M4 (core): Asset, AssetSensitiveData with validation and DB constraints.
+- M5: assignment flows with atomic reassignment and single-current-assignment constraint.
+- M6: assignment audit events (ASSIGNED/REASSIGNED) emitted by services.
 - Seed commands: `seed_core`, `seed_demo`, `create_demo_users`.

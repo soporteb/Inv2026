@@ -2,12 +2,14 @@ from datetime import date
 
 from django.contrib.auth.models import Group, User
 from django.core.exceptions import ValidationError
+from django.db import IntegrityError
 from django.test import TestCase
 
 from core.models import AssignmentReason, Category, Location, Status
 from employees.models import Employee
 
-from .models import Asset, AssetSensitiveData
+from .models import Asset, AssetAssignment, AssetEvent, AssetSensitiveData
+from .services import assign_asset, reassign_asset
 
 
 class AssetRulesTests(TestCase):
@@ -110,3 +112,52 @@ class SensitiveDataVisibilityTests(TestCase):
         payload = self.sensitive.as_safe_dict(self.admin)
         self.assertEqual(payload["cpu_padlock_key"], "PAD-XYZ")
         self.assertEqual(payload["license_secret"], "LIC-XYZ")
+
+
+class AssignmentFlowTests(TestCase):
+    def setUp(self):
+        self.category = Category.objects.create(name="Switch")
+        self.location = Location.objects.create(site="Main", floor="3", type="ROOM", exact_name="Datacenter")
+        self.status = Status.objects.create(name="In Maintenance")
+        self.reason_initial = AssignmentReason.objects.create(name="Temporary loan")
+        self.reason_reassign = AssignmentReason.objects.create(name="Replacement")
+
+        self.responsible = Employee.objects.create(dni="55555555", first_name="Luis", last_name="Paredes", worker_type=Employee.WorkerType.CAS)
+        self.assignee1 = Employee.objects.create(dni="66666666", first_name="Diana", last_name="Gamarra", worker_type=Employee.WorkerType.LOCADOR)
+        self.assignee2 = Employee.objects.create(dni="77777777", first_name="Iris", last_name="Zevallos", worker_type=Employee.WorkerType.PRACTICANTE)
+
+        self.asset = Asset.objects.create(
+            category=self.category,
+            location=self.location,
+            status=self.status,
+            asset_tag_internal="INT-SWI-9000",
+            responsible_employee=self.responsible,
+        )
+
+    def test_assign_asset_creates_current_assignment_and_event(self):
+        assignment = assign_asset(asset=self.asset, reason=self.reason_initial, assigned_employee=self.assignee1)
+        self.assertTrue(assignment.is_current)
+        self.assertEqual(AssetAssignment.objects.filter(asset=self.asset, is_current=True).count(), 1)
+        self.assertTrue(AssetEvent.objects.filter(asset=self.asset, event_type=AssetEvent.EventType.ASSIGNED).exists())
+
+    def test_reassign_asset_closes_previous_and_creates_new_current(self):
+        first = assign_asset(asset=self.asset, reason=self.reason_initial, assigned_employee=self.assignee1)
+        second = reassign_asset(asset=self.asset, reason=self.reason_reassign, new_assigned_employee=self.assignee2)
+
+        first.refresh_from_db()
+        self.assertFalse(first.is_current)
+        self.assertIsNotNone(first.end_at)
+        self.assertTrue(second.is_current)
+        self.assertEqual(second.assigned_employee, self.assignee2)
+        self.assertEqual(AssetAssignment.objects.filter(asset=self.asset, is_current=True).count(), 1)
+        self.assertTrue(AssetEvent.objects.filter(asset=self.asset, event_type=AssetEvent.EventType.REASSIGNED).exists())
+
+    def test_unique_current_assignment_constraint(self):
+        assign_asset(asset=self.asset, reason=self.reason_initial, assigned_employee=self.assignee1)
+        with self.assertRaises((ValidationError, IntegrityError)):
+            AssetAssignment.objects.create(
+                asset=self.asset,
+                assigned_employee=self.assignee2,
+                reason=self.reason_initial,
+                is_current=True,
+            )

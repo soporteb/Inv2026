@@ -117,12 +117,35 @@ class AssetAssignment(models.Model):
     end_at = models.DateTimeField(null=True, blank=True)
     is_current = models.BooleanField(default=True)
 
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["asset"],
+                condition=Q(is_current=True),
+                name="unique_current_assignment_per_asset",
+            )
+        ]
+
+    def clean(self):
+        if self.assigned_employee and self.assigned_employee.worker_type not in {
+            Employee.WorkerType.NOMBRADO,
+            Employee.WorkerType.CAS,
+            Employee.WorkerType.LOCADOR,
+            Employee.WorkerType.PRACTICANTE,
+        }:
+            raise ValidationError({"assigned_employee": "Assigned employee type is not allowed."})
+
+    def save(self, *args, **kwargs):
+        self.full_clean()
+        super().save(*args, **kwargs)
+
 
 class AssetEvent(models.Model):
     class EventType(models.TextChoices):
         CREATED = "CREATED", "Created"
         ASSIGNED = "ASSIGNED", "Assigned"
         UPDATED = "UPDATED", "Updated"
+        REASSIGNED = "REASSIGNED", "Reassigned"
 
     asset = models.ForeignKey(Asset, on_delete=models.CASCADE, related_name="events")
     event_type = models.CharField(max_length=30, choices=EventType.choices)

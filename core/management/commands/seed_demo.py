@@ -6,12 +6,13 @@ from django.core.management import call_command
 from django.core.management.base import BaseCommand
 
 from assets.models import Asset, AssetAssignment, AssetEvent, AssetSensitiveData
+from assets.services import assign_asset, reassign_asset
 from core.models import AssignmentReason, Category, Location, Status
 from employees.models import Employee
 
 
 class Command(BaseCommand):
-    help = "Seed demo users, employees, assets, assignments and events for phase 2."
+    help = "Seed demo users, employees, assets, assignments and events for phase 3."
 
     def handle(self, *args, **options):
         call_command("create_demo_users")
@@ -111,24 +112,24 @@ class Command(BaseCommand):
                 assets.append(asset)
                 sequence += 1
 
-        # Create a few current assignments, leaving labs mostly unassigned
+        # Create current assignments and reassignment history (Phase 3)
         lab_names = {"laboratorio 1", "laboratorio 2", "laboratorio 3", "laboratorio 4"}
-        for idx, asset in enumerate(assets[:18]):
+        initially_assigned_assets = []
+        for idx, asset in enumerate(assets[:20]):
             if asset.location.exact_name.lower() in lab_names and idx % 2 == 0:
                 continue
             assigned = random.choice(assignables)
-            AssetAssignment.objects.update_or_create(
+            assign_asset(asset=asset, reason=reason_initial, assigned_employee=assigned, note=f"Initial assignment to {assigned}")
+            initially_assigned_assets.append(asset)
+
+        reassignment_reason = AssignmentReason.objects.get(name="Replacement")
+        for asset in initially_assigned_assets[:8]:
+            next_employee = random.choice(assignables)
+            reassign_asset(
                 asset=asset,
-                is_current=True,
-                defaults={
-                    "assigned_employee": assigned,
-                    "reason": reason_initial,
-                },
-            )
-            AssetEvent.objects.get_or_create(
-                asset=asset,
-                event_type=AssetEvent.EventType.ASSIGNED,
-                description=f"Assigned to {assigned.first_name} {assigned.last_name}",
+                reason=reassignment_reason,
+                new_assigned_employee=next_employee,
+                note=f"Reassigned during seed to {next_employee}",
             )
 
         User = get_user_model()
@@ -136,4 +137,4 @@ class Command(BaseCommand):
         self.stdout.write(self.style.SUCCESS(f"Employees: {Employee.objects.count()}"))
         self.stdout.write(self.style.SUCCESS(f"Assets: {Asset.objects.count()}"))
         self.stdout.write(self.style.SUCCESS(f"Assignments: {AssetAssignment.objects.count()}"))
-        self.stdout.write(self.style.SUCCESS("seed_demo completed (phase 2 data)"))
+        self.stdout.write(self.style.SUCCESS("seed_demo completed (phase 3 data)"))
