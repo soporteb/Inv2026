@@ -113,11 +113,20 @@ class Command(BaseCommand):
                 sequence += 1
 
         # Create current assignments and reassignment history (Phase 3)
+        # Idempotent behavior: if a current assignment already exists, avoid failing and reuse it.
         lab_names = {"laboratorio 1", "laboratorio 2", "laboratorio 3", "laboratorio 4"}
         initially_assigned_assets = []
+        assignment_skipped_existing = 0
         for idx, asset in enumerate(assets[:20]):
             if asset.location.exact_name.lower() in lab_names and idx % 2 == 0:
                 continue
+
+            current_assignment = asset.assignments.filter(is_current=True).first()
+            if current_assignment:
+                assignment_skipped_existing += 1
+                initially_assigned_assets.append(asset)
+                continue
+
             assigned = random.choice(assignables)
             assign_asset(asset=asset, reason=reason_initial, assigned_employee=assigned, note=f"Initial assignment to {assigned}")
             initially_assigned_assets.append(asset)
@@ -137,4 +146,5 @@ class Command(BaseCommand):
         self.stdout.write(self.style.SUCCESS(f"Employees: {Employee.objects.count()}"))
         self.stdout.write(self.style.SUCCESS(f"Assets: {Asset.objects.count()}"))
         self.stdout.write(self.style.SUCCESS(f"Assignments: {AssetAssignment.objects.count()}"))
+        self.stdout.write(self.style.SUCCESS(f"Assignments reused from previous run: {assignment_skipped_existing}"))
         self.stdout.write(self.style.SUCCESS("seed_demo completed (phase 3 data)"))
