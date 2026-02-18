@@ -1,30 +1,52 @@
 {% extends 'base.html' %}
+{% block page_title %}Dashboard{% endblock %}
 {% block content %}
-<h1 class="text-2xl font-semibold text-primary mb-4">Dashboard</h1>
-<div class="grid md:grid-cols-3 gap-4 mb-6">
-  <div class="bg-white border border-borderc rounded p-4"><div class="text-slate-500">Total Assets</div><div class="text-2xl font-bold">{{ total_assets }}</div></div>
-  <div class="bg-white border border-borderc rounded p-4"><div class="text-slate-500">Operational</div><div class="text-2xl font-bold text-success">{{ operational_assets }}</div></div>
-  <div class="bg-white border border-borderc rounded p-4"><div class="text-slate-500">Currently Assigned</div><div class="text-2xl font-bold text-accent">{{ assigned_assets }}</div></div>
-  <div class="bg-white border border-borderc rounded p-4"><div class="text-slate-500">Open Maintenance</div><div class="text-2xl font-bold">{{ open_maintenance }}</div></div>
-  <div class="bg-white border border-borderc rounded p-4"><div class="text-slate-500">Decommissioned</div><div class="text-2xl font-bold">{{ decommissioned_assets }}</div></div>
-  <div class="bg-white border border-borderc rounded p-4"><div class="text-slate-500">Low Stock Items</div><div class="text-2xl font-bold text-error">{{ low_stock_items|length }}</div></div>
+<div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-4 mb-6">
+  <div class="bg-white rounded-xl border border-borderc p-5"><p class="text-slate-500 text-sm">Total Assets</p><p class="text-4xl font-bold mt-2">{{ total_assets }}</p></div>
+  <div class="bg-white rounded-xl border border-borderc p-5"><p class="text-slate-500 text-sm">Operational</p><p class="text-4xl font-bold text-success mt-2">{{ operational_assets }}</p></div>
+  <div class="bg-white rounded-xl border border-borderc p-5"><p class="text-slate-500 text-sm">Maintenance</p><p class="text-4xl font-bold mt-2">{{ open_maintenance }}</p></div>
+  <div class="bg-white rounded-xl border border-borderc p-5"><p class="text-slate-500 text-sm">Inoperative</p><p class="text-4xl font-bold text-error mt-2">{{ inoperative_assets }}</p></div>
+  <div class="bg-white rounded-xl border border-borderc p-5"><p class="text-slate-500 text-sm">Decommissioned</p><p class="text-4xl font-bold mt-2">{{ decommissioned_assets }}</p></div>
 </div>
-<div class="grid md:grid-cols-2 gap-4">
-  <div class="bg-white border border-borderc rounded p-4">
-    <h2 class="font-semibold text-card mb-3">Assets by Category</h2>
-    <ul class="space-y-2">
+
+<div class="grid grid-cols-1 xl:grid-cols-3 gap-4 mb-4">
+  <section class="xl:col-span-2 bg-white rounded-xl border border-borderc p-5">
+    <h2 class="text-2xl font-semibold mb-4">Assets by Category</h2>
+    <div class="space-y-3">
       {% for row in category_counts %}
-      <li class="flex justify-between border-b border-borderc pb-1"><span>{{ row.category__name }}</span><span class="font-semibold">{{ row.total }}</span></li>
-      {% empty %}<li>No data</li>{% endfor %}
-    </ul>
-  </div>
-  <div class="bg-white border border-borderc rounded p-4">
-    <h2 class="font-semibold text-card mb-3">Low Stock Alert</h2>
-    <ul class="space-y-2">
-      {% for item in low_stock_items %}
-      <li class="flex justify-between border-b border-borderc pb-1"><span>{{ item.name }}</span><span class="text-error font-semibold">{{ item.current_stock }}</span></li>
-      {% empty %}<li>No low-stock items.</li>{% endfor %}
-    </ul>
-  </div>
+      <div>
+        <div class="flex justify-between text-sm mb-1"><span>{{ row.category__name }}</span><span>{{ row.total }}</span></div>
+        <div class="h-3 bg-slate-100 rounded">
+          <div class="h-3 bg-accent rounded" style="width:{% widthratio row.total total_assets 100 %}%"></div>
+        </div>
+      </div>
+      {% empty %}<p>No data</p>{% endfor %}
+    </div>
+  </section>
+
+  <section class="bg-white rounded-xl border border-borderc p-5">
+    <h2 class="text-2xl font-semibold mb-4">Top Locations</h2>
+    <div class="mx-auto w-44 h-44 rounded-full border-[24px] border-cyan-500 relative">
+      <div class="absolute inset-0 rounded-full border-t-[24px] border-t-pink-500 border-r-[24px] border-r-indigo-500 border-b-[24px] border-b-violet-500 border-l-[24px] border-l-blue-500 border-transparent"></div>
+    </div>
+  </section>
+</div>
+
+<div class="grid grid-cols-1 xl:grid-cols-3 gap-4">
+  <section class="xl:col-span-2 bg-white rounded-xl border border-borderc p-5">
+    <h2 class="text-2xl font-semibold mb-4">System Alerts</h2>
+    <div class="space-y-3 text-sm">
+      <div class="rounded-lg border-l-4 border-amber-500 bg-amber-50 px-3 py-2">{{ low_stock_items|length }} low-stock consumable items.</div>
+      <div class="rounded-lg border-l-4 border-error bg-red-50 px-3 py-2">{{ decommissioned_assets }} assets are decommissioned.</div>
+    </div>
+  </section>
+
+  <section class="bg-white rounded-xl border border-borderc p-5">
+    <h2 class="text-2xl font-semibold mb-4">Recent Assignments</h2>
+    <div class="space-y-3 text-sm text-slate-700">
+      <div>Assigned assets: <span class="font-semibold">{{ assigned_assets }}</span></div>
+      <a href="{% url 'assets:assignment_list' %}" class="text-accent hover:underline">Go to Assignments module</a>
+    </div>
+  </section>
 </div>
 {% endblock %}

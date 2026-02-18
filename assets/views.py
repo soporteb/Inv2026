@@ -35,6 +35,7 @@ class DashboardView(AssetViewRequiredMixin, TemplateView):
         ctx["assigned_assets"] = Asset.objects.filter(assignments__is_current=True).distinct().count()
         ctx["open_maintenance"] = MaintenanceRecord.objects.exclude(status=MaintenanceRecord.MaintenanceStatus.CLOSED).count()
         ctx["decommissioned_assets"] = DecommissionRecord.objects.count()
+        ctx["inoperative_assets"] = Asset.objects.filter(status__name="Inoperative").count()
         ctx["low_stock_items"] = [i for i in ConsumableItem.objects.all() if i.is_low_stock]
         ctx["category_counts"] = Asset.objects.values("category__name").annotate(total=Count("id")).order_by("-total")[:8]
         return ctx
