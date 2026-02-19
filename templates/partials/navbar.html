@@ -1,0 +1,25 @@
+<nav class="bg-primary text-white border-b border-borderc">
+  <div class="max-w-7xl mx-auto px-6 py-3 flex justify-between items-center">
+    <div class="font-semibold">IT Asset Inventory</div>
+    <div class="flex gap-4 text-sm items-center">
+      {% if user.is_authenticated %}
+        <a class="hover:text-accent" href="{% url 'assets:dashboard' %}">Dashboard</a>
+        <a class="hover:text-accent" href="{% url 'assets:asset_list' %}">Assets</a>
+        <a class="hover:text-accent" href="{% url 'assets:assignment_list' %}">Assignments</a>
+        <a class="hover:text-accent" href="{% url 'assets:maintenance_list' %}">Operations</a>
+        <a class="hover:text-accent" href="{% url 'assets:consumable_list' %}">Consumables</a>
+        <a class="hover:text-accent" href="{% url 'assets:asset_report' %}">Reports</a>
+        {% if is_admin_user %}
+          <a class="hover:text-accent" href="/locations/">Locations</a>
+          <a class="hover:text-accent" href="/employees/">Employees</a>
+          <a class="hover:text-accent" href="/admin/">Admin</a>
+        {% endif %}
+        <form method="post" action="{% url 'logout' %}" class="inline">{% csrf_token %}
+          <button type="submit" class="hover:text-accent">Logout</button>
+        </form>
+      {% else %}
+        <a class="hover:text-accent" href="/login/">Login</a>
+      {% endif %}
+    </div>
+  </div>
+</nav>

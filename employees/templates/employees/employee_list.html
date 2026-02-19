@@ -1,0 +1,16 @@
+{% extends 'base.html' %}
+{% block content %}
+<h2>Employees</h2>
+<a href="{% url 'employees:employee_create' %}" role="button">New Employee</a>
+<table>
+  <thead><tr><th>DNI</th><th>Name</th><th>Type</th><th>Active</th><th>Action</th></tr></thead>
+  <tbody>
+    {% for employee in employees %}
+      <tr>
+        <td>{{ employee.dni }}</td><td>{{ employee.first_name }} {{ employee.last_name }}</td><td>{{ employee.worker_type }}</td><td>{{ employee.is_active|yesno:"Yes,No" }}</td>
+        <td><a href="{% url 'employees:employee_edit' employee.pk %}">Edit</a></td>
+      </tr>
+    {% empty %}<tr><td colspan="5">No employees found.</td></tr>{% endfor %}
+  </tbody>
+</table>
+{% endblock %}
