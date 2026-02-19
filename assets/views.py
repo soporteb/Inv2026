@@ -167,6 +167,11 @@ class AssetWizardStep3View(WizardManageMixin, FormView):
             return redirect("assets:asset_new_step2")
         return super().dispatch(request, *args, **kwargs)
 
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs["category_name"] = self.get_wizard_data().get("category_name")
+        return kwargs
+
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
         ctx["category_name"] = self.get_wizard_data().get("category_name")
@@ -179,7 +184,11 @@ class AssetWizardStep3View(WizardManageMixin, FormView):
         self.set_wizard_data(data)
         if is_admin(self.request.user):
             return redirect("assets:asset_new_step4")
-        self._finish_create_asset(data, sensitive_payload={})
+        try:
+            self._finish_create_asset(data, sensitive_payload={})
+        except ValidationError as exc:
+            messages.error(self.request, exc.message_dict.get("station_code", ["Validation error while creating asset."])[0])
+            return redirect("assets:asset_new_step2")
         return redirect("assets:asset_list")
 
     def _finish_create_asset(self, data, sensitive_payload):
@@ -249,7 +258,11 @@ class AssetWizardStep4View(AssetWizardStep3View):
         payload = {"cpu_padlock_key": form.cleaned_data.get("cpu_padlock_key", ""), "license_secret": form.cleaned_data.get("license_secret", "")}
         data["step4"] = payload
         self.set_wizard_data(data)
-        self._finish_create_asset(data, sensitive_payload=payload)
+        try:
+            self._finish_create_asset(data, sensitive_payload=payload)
+        except ValidationError as exc:
+            messages.error(self.request, exc.message_dict.get("station_code", ["Validation error while creating asset."])[0])
+            return redirect("assets:asset_new_step2")
         return redirect("assets:asset_list")
 
 

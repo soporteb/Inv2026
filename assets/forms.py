@@ -127,6 +127,38 @@ class AssetWizardStep3Form(forms.Form):
     managed_by_text = forms.CharField(max_length=120, required=False)
     standalone_server = forms.BooleanField(required=False)
 
+    COMPUTER_CATEGORIES = {"CPU", "Laptop", "Server"}
+    PRINTER_CATEGORIES = {"Printer"}
+    NETWORK_CATEGORIES = {"Switch", "Access Point", "Router"}
+    CAMERA_CATEGORIES = {"Security Camera"}
+    SIMPLE_PERIPHERAL_CATEGORIES = {
+        "Monitor", "Keyboard", "Teclado", "Webcam", "Headphones", "Microphone", "PC Speaker",
+        "Projector", "Interactive Whiteboard", "Air Conditioner", "Biometric Clock", "Tablet", "Sound Console", "Teleconference",
+    }
+
+    def __init__(self, *args, category_name=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.category_name = category_name
+        allowed = {"brand", "model"}
+
+        if category_name in self.COMPUTER_CATEGORIES:
+            allowed = {
+                "brand", "model", "host", "mac", "ip", "os_name", "antivirus_name", "domain", "dns1", "dns2",
+                "processor", "cpu_speed", "ram_total_gb", "ram_slots_total", "storage_summary", "padlock_present",
+            }
+        elif category_name in self.PRINTER_CATEGORIES:
+            allowed = {"brand", "model", "ip", "associated_email"}
+        elif category_name in self.NETWORK_CATEGORIES:
+            allowed = {"brand", "model", "ip", "managed_by_text", "standalone_server"}
+        elif category_name in self.CAMERA_CATEGORIES:
+            allowed = {"brand", "model", "ip"}
+        elif category_name in self.SIMPLE_PERIPHERAL_CATEGORIES:
+            allowed = {"brand", "model"}
+
+        for name in list(self.fields):
+            if name not in allowed:
+                self.fields.pop(name)
+
 
 class AssetWizardStep4SensitiveForm(forms.ModelForm):
     class Meta:

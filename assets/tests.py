@@ -323,7 +323,7 @@ class WizardFlowTests(TestCase):
         self.assertEqual(asset.control_patrimonial, None)
         self.assertTrue(hasattr(asset, "sensitive_data"))
 
-    def test_station_code_unique_per_location(self):
+    def test_station_code_can_repeat(self):
         Asset.objects.create(
             category=self.category,
             location=self.location,
@@ -332,13 +332,12 @@ class WizardFlowTests(TestCase):
             asset_tag_internal="INT-SC-001",
             station_code="LAB1-01",
         )
-        with self.assertRaises(ValidationError):
-            asset = Asset(
-                category=self.category,
-                location=self.location,
-                status=self.status,
-                responsible_employee=self.responsible,
-                asset_tag_internal="INT-SC-002",
-                station_code="LAB1-01",
-            )
-            asset.full_clean()
+        asset = Asset(
+            category=self.category,
+            location=self.location,
+            status=self.status,
+            responsible_employee=self.responsible,
+            asset_tag_internal="INT-SC-002",
+            station_code="LAB1-01",
+        )
+        asset.full_clean()

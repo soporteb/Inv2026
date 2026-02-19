@@ -64,11 +64,6 @@ class Asset(models.Model):
                 check=Q(control_patrimonial__isnull=True) | Q(acquisition_date__isnull=False),
                 name="asset_acquisition_date_required_with_patrimonial",
             ),
-            models.UniqueConstraint(
-                fields=["location", "station_code"],
-                condition=Q(station_code__isnull=False),
-                name="asset_unique_station_per_location",
-            ),
         ]
 
     def __str__(self) -> str:
@@ -102,13 +97,6 @@ class Asset(models.Model):
 
         if category_name in self.INTERNAL_REQUIRED_CATEGORIES and not self.asset_tag_internal:
             errors["asset_tag_internal"] = f"{category_name} requires internal code (asset_tag_internal)."
-
-        if self.station_code and self.location_id:
-            qs = Asset.objects.filter(location_id=self.location_id, station_code__iexact=self.station_code)
-            if self.pk:
-                qs = qs.exclude(pk=self.pk)
-            if qs.exists():
-                errors["station_code"] = "Station code must be unique per location."
 
         if errors:
             raise ValidationError(errors)
