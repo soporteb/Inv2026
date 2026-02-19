@@ -1,0 +1,29 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="flex items-center justify-between mb-4">
+  <h1 class="text-2xl font-semibold text-primary">Assets</h1>
+  {% if can_manage_assets %}
+  <a href="{% url 'assets:asset_new_step1' %}" class="bg-accent text-white px-4 py-2 rounded">New Asset</a>
+  {% endif %}
+</div>
+
+<div class="bg-white border border-borderc rounded p-4 mb-4">
+  <label class="text-sm text-slate-600">Search</label>
+  <input
+    type="text"
+    name="q"
+    value="{{ request.GET.q }}"
+    placeholder="Code, patrimonial, serial, category, location"
+    class="w-full mt-1 border border-borderc rounded px-3 py-2"
+    hx-get="{% url 'assets:asset_list' %}"
+    hx-trigger="keyup changed delay:300ms"
+    hx-target="#asset-table"
+    hx-indicator="#loading"
+  />
+  <div id="loading" class="htmx-indicator text-sm text-slate-500 mt-2">Filtering...</div>
+</div>
+
+<div id="asset-table">
+  {% include 'assets/partials/asset_table.html' %}
+</div>
+{% endblock %}

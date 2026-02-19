@@ -1,0 +1,22 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="flex items-center justify-between mb-4">
+  <h1 class="text-2xl font-semibold text-primary">Consumables</h1>
+  {% if can_manage_assets %}
+  <div class="flex gap-2">
+    <a href="{% url 'assets:consumable_create' %}" class="bg-accent text-white px-4 py-2 rounded">New Item</a>
+    <a href="{% url 'assets:consumable_movement_create' %}" class="bg-card text-white px-4 py-2 rounded">New Movement</a>
+  </div>
+  {% endif %}
+</div>
+<div class="bg-white border border-borderc rounded overflow-x-auto">
+  <table class="w-full text-sm">
+    <thead class="bg-slate-100"><tr><th class="px-3 py-2 text-left">Item</th><th class="px-3 py-2 text-left">SKU</th><th class="px-3 py-2 text-left">Stock</th><th class="px-3 py-2 text-left">Min</th><th class="px-3 py-2 text-left">Kardex</th></tr></thead>
+    <tbody>
+      {% for item in items %}
+      <tr class="border-t border-borderc"><td class="px-3 py-2">{{ item.name }}</td><td class="px-3 py-2">{{ item.sku }}</td><td class="px-3 py-2 {% if item.is_low_stock %}text-error font-semibold{% endif %}">{{ item.current_stock }}</td><td class="px-3 py-2">{{ item.min_stock }}</td><td class="px-3 py-2"><a class="text-primary" href="{% url 'assets:consumable_kardex' item.pk %}">View</a></td></tr>
+      {% empty %}<tr><td class="px-3 py-2" colspan="5">No consumables.</td></tr>{% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}
