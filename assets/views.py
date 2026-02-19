@@ -1,18 +1,24 @@
 import csv
 
 from django.contrib import messages
-from django.core.exceptions import ValidationError
+from django.core.exceptions import PermissionDenied, ValidationError
+from django.db import transaction
 from django.db.models import Count, Q
 from django.http import HttpResponse, HttpResponseRedirect
-from django.urls import reverse_lazy
-from django.views.generic import CreateView, DetailView, ListView, TemplateView, UpdateView
+from django.shortcuts import redirect
+from django.urls import reverse, reverse_lazy
+from django.views.generic import CreateView, DetailView, FormView, ListView, TemplateView, UpdateView
 
 from accounts.mixins import AssetManageRequiredMixin, AssetViewRequiredMixin
-from accounts.roles import is_admin
+from accounts.roles import can_manage_assets, is_admin
 
 from .forms import (
     AssignmentForm,
     AssetForm,
+    AssetWizardStep1Form,
+    AssetWizardStep2Form,
+    AssetWizardStep3Form,
+    AssetWizardStep4SensitiveForm,
     ConsumableItemForm,
     ConsumableMovementForm,
     DecommissionForm,
@@ -20,9 +26,32 @@ from .forms import (
     ReassignmentForm,
     ReplacementForm,
 )
-from .models import Asset, AssetAssignment, ConsumableItem, ConsumableMovement, DecommissionRecord, MaintenanceRecord, ReplacementRecord
+from .models import (
+    Asset,
+    AssetAssignment,
+    AssetEvent,
+    AssetSensitiveData,
+    CameraDetails,
+    ComputerSpecs,
+    ConsumableItem,
+    ConsumableMovement,
+    DecommissionRecord,
+    MaintenanceRecord,
+    NetworkDeviceDetails,
+    PeripheralDetails,
+    PrinterDetails,
+    ReplacementRecord,
+    TeleconferenceDetails,
+)
 from .reports import get_asset_safe_rows
 from .services import assign_asset, reassign_asset
+
+
+WIZARD_SESSION_KEY = "wizard.asset"
+COMPUTER_CATEGORIES = {"CPU", "Laptop", "Server"}
+NETWORK_CATEGORIES = {"Switch", "Access Point", "Router"}
+CAMERA_CATEGORIES = {"Security Camera", "Webcam"}
+PATRIMONIAL_REQUIRED_CATEGORIES = Asset.PATRIMONIAL_REQUIRED_CATEGORIES
 
 
 class DashboardView(AssetViewRequiredMixin, TemplateView):
@@ -41,6 +70,219 @@ class DashboardView(AssetViewRequiredMixin, TemplateView):
         return ctx
 
 
+class WizardManageMixin(AssetManageRequiredMixin):
+    def dispatch(self, request, *args, **kwargs):
+        if not can_manage_assets(request.user):
+            raise PermissionDenied
+        return super().dispatch(request, *args, **kwargs)
+
+    def get_wizard_data(self):
+        return self.request.session.get(WIZARD_SESSION_KEY, {})
+
+    def set_wizard_data(self, payload):
+        self.request.session[WIZARD_SESSION_KEY] = payload
+        self.request.session.modified = True
+
+
+class AssetWizardStep1View(WizardManageMixin, FormView):
+    form_class = AssetWizardStep1Form
+    template_name = "assets/wizard/step1.html"
+
+    def get_initial(self):
+        data = self.get_wizard_data()
+        return {"category": data.get("category_id"), "ownership_type": data.get("ownership_type"), "provider_name": data.get("provider_name")}
+
+    def form_valid(self, form):
+        data = self.get_wizard_data()
+        data.update(
+            {
+                "step1_done": True,
+                "category_id": form.cleaned_data["category"].id,
+                "category_name": form.cleaned_data["category"].name,
+                "ownership_type": form.cleaned_data["ownership_type"],
+                "provider_name": form.cleaned_data.get("provider_name", ""),
+            }
+        )
+        self.set_wizard_data(data)
+        return redirect("assets:asset_new_step2")
+
+
+class AssetWizardStep2View(WizardManageMixin, FormView):
+    form_class = AssetWizardStep2Form
+    template_name = "assets/wizard/step2.html"
+
+    def dispatch(self, request, *args, **kwargs):
+        if not self.get_wizard_data().get("step1_done"):
+            return redirect("assets:asset_new_step1")
+        return super().dispatch(request, *args, **kwargs)
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        data = self.get_wizard_data()
+        kwargs["ownership_type"] = data.get("ownership_type")
+        return kwargs
+
+    def get_initial(self):
+        data = self.get_wizard_data()
+        return data.get("step2", {})
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        data = self.get_wizard_data()
+        category_name = data.get("category_name")
+        ownership = data.get("ownership_type")
+        ctx["rules"] = {
+            "patrimonial_allowed": ownership != Asset.OwnershipType.PROVIDER,
+            "patrimonial_required": category_name in PATRIMONIAL_REQUIRED_CATEGORIES,
+            "internal_required": ownership == Asset.OwnershipType.PROVIDER or category_name in Asset.INTERNAL_REQUIRED_CATEGORIES,
+            "acquisition_required": True,
+            "step4_required": is_admin(self.request.user),
+        }
+        return ctx
+
+    def form_valid(self, form):
+        data = self.get_wizard_data()
+        data["step2_done"] = True
+        data["step2"] = form.cleaned_data
+        data["step2"]["responsible_employee"] = form.cleaned_data["responsible_employee"].id
+        data["step2"]["location"] = form.cleaned_data["location"].id
+        data["step2"]["status"] = form.cleaned_data["status"].id
+        self.set_wizard_data(data)
+        return redirect("assets:asset_new_step3")
+
+
+class AssetWizardStep3View(WizardManageMixin, FormView):
+    form_class = AssetWizardStep3Form
+    template_name = "assets/wizard/step3.html"
+
+    def dispatch(self, request, *args, **kwargs):
+        data = self.get_wizard_data()
+        if not data.get("step1_done"):
+            return redirect("assets:asset_new_step1")
+        if not data.get("step2_done"):
+            return redirect("assets:asset_new_step2")
+        return super().dispatch(request, *args, **kwargs)
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        ctx["category_name"] = self.get_wizard_data().get("category_name")
+        return ctx
+
+    def form_valid(self, form):
+        data = self.get_wizard_data()
+        data["step3_done"] = True
+        data["step3"] = form.cleaned_data
+        self.set_wizard_data(data)
+        if is_admin(self.request.user):
+            return redirect("assets:asset_new_step4")
+        self._finish_create_asset(data, sensitive_payload={})
+        return redirect("assets:asset_list")
+
+    def _finish_create_asset(self, data, sensitive_payload):
+        with transaction.atomic():
+            step2 = data["step2"]
+            asset = Asset.objects.create(
+                category_id=data["category_id"],
+                ownership_type=data["ownership_type"],
+                provider_name=data.get("provider_name") or None,
+                control_patrimonial=step2.get("control_patrimonial") or None,
+                asset_tag_internal=step2.get("asset_tag_internal") or None,
+                serial=step2.get("serial") or None,
+                acquisition_date=step2.get("acquisition_date") or None,
+                station_code=step2.get("station_code") or None,
+                responsible_employee_id=step2["responsible_employee"],
+                location_id=step2["location"],
+                status_id=step2["status"],
+                observations=step2.get("observations") or "",
+            )
+            self._create_details(asset, data.get("step3", {}), data.get("category_name"))
+            if sensitive_payload:
+                AssetSensitiveData.objects.update_or_create(asset=asset, defaults={**sensitive_payload, "updated_by": self.request.user})
+            AssetEvent.objects.create(asset=asset, event_type=AssetEvent.EventType.CREATED, created_by=self.request.user, description=f"Created {asset.public_id}")
+        self.request.session.pop(WIZARD_SESSION_KEY, None)
+
+    @staticmethod
+    def _create_details(asset, payload, category_name):
+        if category_name in COMPUTER_CATEGORIES:
+            ComputerSpecs.objects.create(
+                asset=asset,
+                cpu_model=payload.get("processor") or payload.get("model") or "N/A",
+                ram_gb=payload.get("ram_total_gb") or 0,
+                storage_gb=0,
+                os_name=payload.get("os_name") or "",
+                ip_address=payload.get("ip") or None,
+                mac_address=payload.get("mac") or "",
+            )
+        elif category_name in {"Monitor", "Keyboard", "Webcam", "Headphones", "Microphone", "PC Speaker", "Projector", "Interactive Whiteboard", "Air Conditioner", "Biometric Clock", "Tablet", "Sound Console"}:
+            PeripheralDetails.objects.create(asset=asset, brand=payload.get("brand") or "", model=payload.get("model") or "")
+        elif category_name == "Printer":
+            PrinterDetails.objects.create(asset=asset, print_technology=payload.get("brand") or "", ppm=0)
+        elif category_name in NETWORK_CATEGORIES:
+            NetworkDeviceDetails.objects.create(asset=asset, managed=bool(payload.get("managed_by_text")), wifi_standard="")
+        elif category_name == "Teleconference":
+            TeleconferenceDetails.objects.create(asset=asset)
+        elif category_name == "Security Camera":
+            CameraDetails.objects.create(asset=asset)
+
+
+class AssetWizardStep4View(AssetWizardStep3View):
+    form_class = AssetWizardStep4SensitiveForm
+    template_name = "assets/wizard/step4.html"
+
+    def dispatch(self, request, *args, **kwargs):
+        if not is_admin(request.user):
+            raise PermissionDenied
+        data = self.get_wizard_data()
+        if not data.get("step3_done"):
+            return redirect("assets:asset_new_step3")
+        return super().dispatch(request, *args, **kwargs)
+
+    def get_initial(self):
+        return self.get_wizard_data().get("step4", {})
+
+    def form_valid(self, form):
+        data = self.get_wizard_data()
+        payload = {"cpu_padlock_key": form.cleaned_data.get("cpu_padlock_key", ""), "license_secret": form.cleaned_data.get("license_secret", "")}
+        data["step4"] = payload
+        self.set_wizard_data(data)
+        self._finish_create_asset(data, sensitive_payload=payload)
+        return redirect("assets:asset_list")
+
+
+class WizardRulesPanelView(WizardManageMixin, TemplateView):
+    template_name = "assets/wizard/partials/rules_panel.html"
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        category = self.request.GET.get("category", "")
+        ownership = self.request.GET.get("ownership", "")
+        ctx["rules"] = {
+            "patrimonial_allowed": ownership != Asset.OwnershipType.PROVIDER,
+            "patrimonial_required": category in PATRIMONIAL_REQUIRED_CATEGORIES,
+            "internal_required": ownership == Asset.OwnershipType.PROVIDER or category in Asset.INTERNAL_REQUIRED_CATEGORIES,
+            "acquisition_required": True,
+            "step4_required": is_admin(self.request.user),
+        }
+        return ctx
+
+
+class WizardStep2FieldsPartialView(WizardManageMixin, TemplateView):
+    template_name = "assets/wizard/partials/step2_fields.html"
+
+
+class WizardStep3DetailsPartialView(WizardManageMixin, TemplateView):
+    template_name = "assets/wizard/partials/step3_details.html"
+
+
+class WizardStep4SensitivePartialView(WizardManageMixin, TemplateView):
+    template_name = "assets/wizard/partials/step4_sensitive.html"
+
+    def dispatch(self, request, *args, **kwargs):
+        if not is_admin(request.user):
+            raise PermissionDenied
+        return super().dispatch(request, *args, **kwargs)
+
+
 class AssetListView(AssetViewRequiredMixin, ListView):
     model = Asset
     template_name = "assets/asset_list.html"
@@ -49,10 +291,7 @@ class AssetListView(AssetViewRequiredMixin, ListView):
 
     def get_queryset(self):
         q = self.request.GET.get("q", "").strip()
-        qs = (
-            Asset.objects.select_related("category", "location", "status", "responsible_employee")
-            .order_by("-created_at")
-        )
+        qs = Asset.objects.select_related("category", "location", "status", "responsible_employee").order_by("-created_at")
         if q:
             qs = qs.filter(
                 Q(asset_tag_internal__icontains=q)
@@ -60,6 +299,7 @@ class AssetListView(AssetViewRequiredMixin, ListView):
                 | Q(serial__icontains=q)
                 | Q(category__name__icontains=q)
                 | Q(location__exact_name__icontains=q)
+                | Q(public_id__icontains=q)
             )
         return qs
 
@@ -121,12 +361,7 @@ class AssignmentCreateView(AssetManageRequiredMixin, CreateView):
 
     def form_valid(self, form):
         try:
-            assign_asset(
-                asset=form.cleaned_data["asset"],
-                reason=form.cleaned_data["reason"],
-                assigned_employee=form.cleaned_data["assigned_employee"],
-                actor=self.request.user,
-            )
+            assign_asset(asset=form.cleaned_data["asset"], reason=form.cleaned_data["reason"], assigned_employee=form.cleaned_data["assigned_employee"], actor=self.request.user)
         except ValidationError as exc:
             form.add_error(None, exc)
             return self.form_invalid(form)
@@ -142,12 +377,7 @@ class ReassignmentCreateView(AssetManageRequiredMixin, CreateView):
 
     def form_valid(self, form):
         try:
-            reassign_asset(
-                asset=form.cleaned_data["asset"],
-                reason=form.cleaned_data["reason"],
-                new_assigned_employee=form.cleaned_data["assigned_employee"],
-                actor=self.request.user,
-            )
+            reassign_asset(asset=form.cleaned_data["asset"], reason=form.cleaned_data["reason"], new_assigned_employee=form.cleaned_data["assigned_employee"], actor=self.request.user)
         except ValidationError as exc:
             form.add_error(None, exc)
             return self.form_invalid(form)

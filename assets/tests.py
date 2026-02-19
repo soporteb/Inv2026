@@ -258,3 +258,87 @@ class Phase6ConsumablesAndReportsTests(TestCase):
         self.assertIn("has_license", row)
         self.assertNotIn("cpu_padlock_key", row)
         self.assertNotIn("license_secret", row)
+
+
+class WizardFlowTests(TestCase):
+    def setUp(self):
+        self.category = Category.objects.create(name="CPU")
+        self.location = Location.objects.create(site="Main", floor="4", type="ROOM", exact_name="Lab 1")
+        self.status = Status.objects.create(name="Operational")
+        self.responsible = Employee.objects.create(dni="12121212", first_name="Resp", last_name="One", worker_type=Employee.WorkerType.CAS)
+        self.reason = AssignmentReason.objects.create(name="Init")
+
+        admin_group, _ = Group.objects.get_or_create(name="ADMIN")
+        tech_group, _ = Group.objects.get_or_create(name="TECHNICIAN")
+        view_group, _ = Group.objects.get_or_create(name="VIEWER")
+        self.admin = User.objects.create_user("adminw", password="x")
+        self.admin.groups.add(admin_group)
+        self.tech = User.objects.create_user("techw", password="x")
+        self.tech.groups.add(tech_group)
+        self.viewer = User.objects.create_user("viewerw", password="x")
+        self.viewer.groups.add(view_group)
+
+    def _step_payloads(self):
+        return {
+            "step1": {"category": self.category.id, "ownership_type": Asset.OwnershipType.PROVIDER, "provider_name": "Cisco"},
+            "step2": {
+                "asset_tag_internal": "INT-WIZ-001",
+                "serial": "SER-WIZ-001",
+                "acquisition_date": "",
+                "responsible_employee": self.responsible.id,
+                "location": self.location.id,
+                "status": self.status.id,
+                "observations": "obs",
+            },
+            "step3": {"brand": "Dell", "model": "Optiplex", "processor": "i7", "ram_total_gb": 16},
+            "step4": {"cpu_padlock_key": "PAD-1", "license_secret": "LIC-1"},
+        }
+
+    def test_viewer_cannot_access_wizard(self):
+        self.client.login(username="viewerw", password="x")
+        resp = self.client.get("/assets/new/step-1/")
+        self.assertEqual(resp.status_code, 403)
+
+    def test_technician_cannot_access_step4(self):
+        payload = self._step_payloads()
+        self.client.login(username="techw", password="x")
+        self.client.post("/assets/new/step-1/", payload["step1"])
+        self.client.post("/assets/new/step-2/", payload["step2"])
+        self.client.post("/assets/new/step-3/", payload["step3"])
+        resp = self.client.get("/assets/new/step-4/")
+        self.assertEqual(resp.status_code, 403)
+
+    def test_admin_full_flow_creates_asset_with_sensitive(self):
+        payload = self._step_payloads()
+        self.client.login(username="adminw", password="x")
+        self.client.post("/assets/new/step-1/", payload["step1"])
+        self.client.post("/assets/new/step-2/", payload["step2"])
+        self.client.post("/assets/new/step-3/", payload["step3"])
+        self.client.post("/assets/new/step-4/", payload["step4"])
+
+        asset = Asset.objects.get(asset_tag_internal="INT-WIZ-001")
+        self.assertIsNotNone(asset.registered_at)
+        self.assertTrue(asset.public_id.startswith("ASSET-"))
+        self.assertEqual(asset.ownership_type, Asset.OwnershipType.PROVIDER)
+        self.assertEqual(asset.control_patrimonial, None)
+        self.assertTrue(hasattr(asset, "sensitive_data"))
+
+    def test_station_code_unique_per_location(self):
+        Asset.objects.create(
+            category=self.category,
+            location=self.location,
+            status=self.status,
+            responsible_employee=self.responsible,
+            asset_tag_internal="INT-SC-001",
+            station_code="LAB1-01",
+        )
+        with self.assertRaises(ValidationError):
+            asset = Asset(
+                category=self.category,
+                location=self.location,
+                status=self.status,
+                responsible_employee=self.responsible,
+                asset_tag_internal="INT-SC-002",
+                station_code="LAB1-01",
+            )
+            asset.full_clean()

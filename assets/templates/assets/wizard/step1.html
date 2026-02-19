@@ -1,0 +1,12 @@
+{% extends 'base.html' %}
+{% block page_title %}New Asset · Step 1{% endblock %}
+{% block content %}
+<div class="max-w-3xl bg-white border border-borderc rounded-xl p-6">
+  <h2 class="text-xl font-semibold mb-4">Step 1: Select what to add</h2>
+  <form method="post" class="space-y-4">{% csrf_token %}
+    {{ form.as_p }}
+    <p class="text-sm text-slate-500">Provider assets do not have patrimonial code.</p>
+    <button class="bg-primary text-white px-4 py-2 rounded" type="submit">Continue</button>
+  </form>
+</div>
+{% endblock %}

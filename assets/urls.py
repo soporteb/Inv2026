@@ -9,6 +9,10 @@ from .views import (
     AssetReportCSVView,
     AssetReportView,
     AssetUpdateView,
+    AssetWizardStep1View,
+    AssetWizardStep2View,
+    AssetWizardStep3View,
+    AssetWizardStep4View,
     ConsumableCreateView,
     ConsumableKardexView,
     ConsumableListView,
@@ -19,6 +23,10 @@ from .views import (
     MaintenanceListView,
     ReassignmentCreateView,
     ReplacementCreateView,
+    WizardRulesPanelView,
+    WizardStep2FieldsPartialView,
+    WizardStep3DetailsPartialView,
+    WizardStep4SensitivePartialView,
 )
 
 app_name = "assets"
@@ -27,6 +35,14 @@ urlpatterns = [
     path("dashboard/", DashboardView.as_view(), name="dashboard"),
     path("", AssetListView.as_view(), name="asset_list"),
     path("create/", AssetCreateView.as_view(), name="asset_create"),
+    path("new/step-1/", AssetWizardStep1View.as_view(), name="asset_new_step1"),
+    path("new/step-2/", AssetWizardStep2View.as_view(), name="asset_new_step2"),
+    path("new/step-3/", AssetWizardStep3View.as_view(), name="asset_new_step3"),
+    path("new/step-4/", AssetWizardStep4View.as_view(), name="asset_new_step4"),
+    path("new/partials/step-2-fields/", WizardStep2FieldsPartialView.as_view(), name="asset_new_partial_step2"),
+    path("new/partials/step-3-details/", WizardStep3DetailsPartialView.as_view(), name="asset_new_partial_step3"),
+    path("new/partials/step-4-sensitive/", WizardStep4SensitivePartialView.as_view(), name="asset_new_partial_step4"),
+    path("new/partials/rules-panel/", WizardRulesPanelView.as_view(), name="asset_new_partial_rules"),
     path("<int:pk>/", AssetDetailView.as_view(), name="asset_detail"),
     path("<int:pk>/edit/", AssetUpdateView.as_view(), name="asset_edit"),
 

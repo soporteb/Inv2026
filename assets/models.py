@@ -27,13 +27,19 @@ REQUIRES_INTERNAL_CODE_CATEGORIES = {
 
 class Asset(models.Model):
     class OwnershipType(models.TextChoices):
-        INSTITUTION = "INSTITUTION", "Institution"
+        INEI = "INEI", "INEI"
         PROVIDER = "PROVIDER", "Provider"
+
+    PATRIMONIAL_REQUIRED_CATEGORIES = REQUIRES_CONTROL_CATEGORIES
+    INTERNAL_REQUIRED_CATEGORIES = REQUIRES_INTERNAL_CODE_CATEGORIES
 
     category = models.ForeignKey(Category, on_delete=models.PROTECT, related_name="assets")
     location = models.ForeignKey(Location, on_delete=models.PROTECT, related_name="assets")
     status = models.ForeignKey(Status, on_delete=models.PROTECT, related_name="assets")
     responsible_employee = models.ForeignKey(Employee, on_delete=models.PROTECT, related_name="responsible_assets")
+    public_id = models.CharField(max_length=20, unique=True, editable=False, blank=True, null=True)
+    registered_at = models.DateTimeField(auto_now_add=True, db_index=True)
+    station_code = models.CharField(max_length=40, blank=True, null=True)
 
     observations = models.TextField(blank=True)
     acquisition_date = models.DateField(null=True, blank=True)
@@ -42,7 +48,7 @@ class Asset(models.Model):
     serial = models.CharField(max_length=80, unique=True, null=True, blank=True)
     asset_tag_internal = models.CharField(max_length=50, unique=True, null=True, blank=True)
 
-    ownership_type = models.CharField(max_length=20, choices=OwnershipType.choices, default=OwnershipType.INSTITUTION)
+    ownership_type = models.CharField(max_length=20, choices=OwnershipType.choices, default=OwnershipType.INEI)
     provider_name = models.CharField(max_length=200, blank=True, null=True)
 
     created_at = models.DateTimeField(auto_now_add=True)
@@ -58,6 +64,11 @@ class Asset(models.Model):
                 check=Q(control_patrimonial__isnull=True) | Q(acquisition_date__isnull=False),
                 name="asset_acquisition_date_required_with_patrimonial",
             ),
+            models.UniqueConstraint(
+                fields=["location", "station_code"],
+                condition=Q(station_code__isnull=False),
+                name="asset_unique_station_per_location",
+            ),
         ]
 
     def __str__(self) -> str:
@@ -65,6 +76,9 @@ class Asset(models.Model):
 
     def clean(self):
         errors = {}
+        if self.station_code is not None:
+            self.station_code = self.station_code.strip() or None
+
         if not self.control_patrimonial and not self.asset_tag_internal:
             errors["asset_tag_internal"] = "At least one identifier is required (control patrimonial or internal tag)."
 
@@ -83,16 +97,26 @@ class Asset(models.Model):
             errors["responsible_employee"] = "Responsible employee must be NOMBRADO or CAS."
 
         category_name = self.category.name if self.category_id else None
-        if category_name in REQUIRES_CONTROL_CATEGORIES and not self.control_patrimonial:
+        if category_name in self.PATRIMONIAL_REQUIRED_CATEGORIES and not self.control_patrimonial:
             errors["control_patrimonial"] = f"{category_name} requires control patrimonial."
 
-        if category_name in REQUIRES_INTERNAL_CODE_CATEGORIES and not self.asset_tag_internal:
+        if category_name in self.INTERNAL_REQUIRED_CATEGORIES and not self.asset_tag_internal:
             errors["asset_tag_internal"] = f"{category_name} requires internal code (asset_tag_internal)."
+
+        if self.station_code and self.location_id:
+            qs = Asset.objects.filter(location_id=self.location_id, station_code__iexact=self.station_code)
+            if self.pk:
+                qs = qs.exclude(pk=self.pk)
+            if qs.exists():
+                errors["station_code"] = "Station code must be unique per location."
 
         if errors:
             raise ValidationError(errors)
 
     def save(self, *args, **kwargs):
+        if not self.public_id:
+            last_pk = Asset.objects.order_by("-id").values_list("id", flat=True).first() or 0
+            self.public_id = f"ASSET-{last_pk + 1:08d}"
         self.full_clean()
         super().save(*args, **kwargs)
 
