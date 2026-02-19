@@ -88,7 +88,7 @@ class Command(BaseCommand):
                         "acquisition_date": acq,
                         "control_patrimonial": control,
                         "serial": f"SN-{category_name[:3].upper()}-{sequence:05d}",
-                        "ownership_type": Asset.OwnershipType.INSTITUTION,
+                        "ownership_type": Asset.OwnershipType.INEI,
                         "provider_name": None,
                         "responsible_employee": random.choice(responsibles),
                     },
