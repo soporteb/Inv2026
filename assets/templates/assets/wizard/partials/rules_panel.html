@@ -1,0 +1,10 @@
+<div class="bg-white border border-borderc rounded-xl p-4 text-sm">
+  <h3 class="font-semibold mb-3">Rules panel</h3>
+  <ul class="space-y-1 text-slate-700">
+    <li>Patrimonial allowed: <b>{{ rules.patrimonial_allowed|yesno:"Yes,No" }}</b></li>
+    <li>Patrimonial required: <b>{{ rules.patrimonial_required|yesno:"Yes,No" }}</b></li>
+    <li>Internal code required: <b>{{ rules.internal_required|yesno:"Yes,No" }}</b></li>
+    <li>Acquisition date required: <b>{{ rules.acquisition_required|yesno:"Yes,No" }}</b></li>
+    <li>Step 4 available: <b>{{ rules.step4_required|yesno:"Yes,No" }}</b></li>
+  </ul>
+</div>

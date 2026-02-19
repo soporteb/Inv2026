@@ -1,0 +1,19 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="flex items-center justify-between mb-4">
+  <h1 class="text-2xl font-semibold text-primary">Maintenance Records</h1>
+  {% if can_manage_assets %}
+  <a href="{% url 'assets:maintenance_create' %}" class="bg-accent text-white px-4 py-2 rounded">New Maintenance</a>
+  {% endif %}
+</div>
+<div class="bg-white border border-borderc rounded overflow-x-auto">
+  <table class="w-full text-sm">
+    <thead class="bg-slate-100"><tr><th class="px-3 py-2 text-left">Asset</th><th class="px-3 py-2 text-left">Type</th><th class="px-3 py-2 text-left">Status</th><th class="px-3 py-2 text-left">Opened</th></tr></thead>
+    <tbody>
+      {% for r in records %}
+      <tr class="border-t border-borderc"><td class="px-3 py-2"><a class="text-primary" href="{% url 'assets:asset_detail' r.asset_id %}">{{ r.asset }}</a></td><td class="px-3 py-2">{{ r.maintenance_type }}</td><td class="px-3 py-2">{{ r.status }}</td><td class="px-3 py-2">{{ r.opened_at }}</td></tr>
+      {% empty %}<tr><td class="px-3 py-2" colspan="4">No maintenance records.</td></tr>{% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

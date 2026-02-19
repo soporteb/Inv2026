@@ -1,0 +1,11 @@
+:root {
+  --primary: #1E3A8A;
+  --card: #334155;
+  --bg: #F1F5F9;
+  --accent: #06B6D4;
+  --success: #16A34A;
+  --error: #DC2626;
+  --border: #E2E8F0;
+}
+.htmx-indicator { display: none; }
+.htmx-request .htmx-indicator { display: block; }
