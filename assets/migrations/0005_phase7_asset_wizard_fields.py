@@ -9,7 +9,7 @@ def populate_public_id(apps, schema_editor):
     for asset in Asset.objects.order_by("id"):
         if not asset.public_id:
             asset.public_id = f"ASSET-{asset.id:08d}"
-            asset.save(update_fields=["public_id"])
+            Asset.objects.filter(pk=asset.pk).update(public_id=asset.public_id)
 
 def ownership_institution_to_inei(apps, schema_editor):
     Asset = apps.get_model("assets", "Asset")
@@ -17,6 +17,7 @@ def ownership_institution_to_inei(apps, schema_editor):
 
 
 class Migration(migrations.Migration):
+    atomic = False
     dependencies = [
         ("assets", "0004_phase6_operations_consumables"),
     ]
