@@ -52,6 +52,7 @@ COMPUTER_CATEGORIES = {"CPU", "Laptop", "Server"}
 NETWORK_CATEGORIES = {"Switch", "Access Point", "Router"}
 CAMERA_CATEGORIES = {"Security Camera", "Webcam"}
 PATRIMONIAL_REQUIRED_CATEGORIES = Asset.PATRIMONIAL_REQUIRED_CATEGORIES
+SENSITIVE_STEP_CATEGORIES = {"CPU", "Laptop", "Server"}
 
 
 class DashboardView(AssetViewRequiredMixin, TemplateView):
@@ -87,6 +88,7 @@ class WizardManageMixin(AssetManageRequiredMixin):
 class AssetWizardStep1View(WizardManageMixin, FormView):
     form_class = AssetWizardStep1Form
     template_name = "assets/wizard/step1.html"
+
 
     def get_initial(self):
         data = self.get_wizard_data()
@@ -136,7 +138,7 @@ class AssetWizardStep2View(WizardManageMixin, FormView):
             "patrimonial_required": category_name in PATRIMONIAL_REQUIRED_CATEGORIES,
             "internal_required": ownership == Asset.OwnershipType.PROVIDER or category_name in Asset.INTERNAL_REQUIRED_CATEGORIES,
             "acquisition_required": True,
-            "step4_required": is_admin(self.request.user),
+            "step4_required": is_admin(self.request.user) and category in SENSITIVE_STEP_CATEGORIES,
         }
         return ctx
 
@@ -182,7 +184,7 @@ class AssetWizardStep3View(WizardManageMixin, FormView):
         data["step3_done"] = True
         data["step3"] = form.cleaned_data
         self.set_wizard_data(data)
-        if is_admin(self.request.user):
+        if is_admin(self.request.user) and data.get("category_name") in SENSITIVE_STEP_CATEGORIES:
             return redirect("assets:asset_new_step4")
         try:
             self._finish_create_asset(data, sensitive_payload={})
@@ -248,7 +250,12 @@ class AssetWizardStep4View(AssetWizardStep3View):
         data = self.get_wizard_data()
         if not data.get("step3_done"):
             return redirect("assets:asset_new_step3")
+        if data.get("category_name") not in SENSITIVE_STEP_CATEGORIES:
+            return redirect("assets:asset_new_step3")
         return super().dispatch(request, *args, **kwargs)
+
+    def get_form_kwargs(self):
+        return FormView.get_form_kwargs(self)
 
     def get_initial(self):
         return self.get_wizard_data().get("step4", {})
@@ -278,7 +285,7 @@ class WizardRulesPanelView(WizardManageMixin, TemplateView):
             "patrimonial_required": category in PATRIMONIAL_REQUIRED_CATEGORIES,
             "internal_required": ownership == Asset.OwnershipType.PROVIDER or category in Asset.INTERNAL_REQUIRED_CATEGORIES,
             "acquisition_required": True,
-            "step4_required": is_admin(self.request.user),
+            "step4_required": is_admin(self.request.user) and category in SENSITIVE_STEP_CATEGORIES,
         }
         return ctx
 
