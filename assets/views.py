@@ -142,11 +142,15 @@ class AssetWizardStep2View(WizardManageMixin, FormView):
 
     def form_valid(self, form):
         data = self.get_wizard_data()
+        step2_data = dict(form.cleaned_data)
+        acquisition_date = step2_data.get("acquisition_date")
+        step2_data["acquisition_date"] = acquisition_date.isoformat() if acquisition_date else ""
+        step2_data["responsible_employee"] = form.cleaned_data["responsible_employee"].id
+        step2_data["location"] = form.cleaned_data["location"].id
+        step2_data["status"] = form.cleaned_data["status"].id
+
         data["step2_done"] = True
-        data["step2"] = form.cleaned_data
-        data["step2"]["responsible_employee"] = form.cleaned_data["responsible_employee"].id
-        data["step2"]["location"] = form.cleaned_data["location"].id
-        data["step2"]["status"] = form.cleaned_data["status"].id
+        data["step2"] = step2_data
         self.set_wizard_data(data)
         return redirect("assets:asset_new_step3")
 
@@ -213,7 +217,7 @@ class AssetWizardStep3View(WizardManageMixin, FormView):
                 ip_address=payload.get("ip") or None,
                 mac_address=payload.get("mac") or "",
             )
-        elif category_name in {"Monitor", "Keyboard", "Webcam", "Headphones", "Microphone", "PC Speaker", "Projector", "Interactive Whiteboard", "Air Conditioner", "Biometric Clock", "Tablet", "Sound Console"}:
+        elif category_name in {"Monitor", "Keyboard", "Teclado", "Webcam", "Headphones", "Microphone", "PC Speaker", "Projector", "Interactive Whiteboard", "Air Conditioner", "Biometric Clock", "Tablet", "Sound Console"}:
             PeripheralDetails.objects.create(asset=asset, brand=payload.get("brand") or "", model=payload.get("model") or "")
         elif category_name == "Printer":
             PrinterDetails.objects.create(asset=asset, print_technology=payload.get("brand") or "", ppm=0)
