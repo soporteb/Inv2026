@@ -1,0 +1,22 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="flex items-center justify-between mb-4">
+  <h1 class="text-2xl font-semibold text-primary">Assignments</h1>
+  {% if can_manage_assets %}
+  <div class="flex gap-2">
+    <a href="{% url 'assets:assignment_create' %}" class="bg-accent text-white px-4 py-2 rounded">New Assignment</a>
+    <a href="{% url 'assets:reassignment_create' %}" class="bg-card text-white px-4 py-2 rounded">Reassign</a>
+  </div>
+  {% endif %}
+</div>
+<div class="bg-white border border-borderc rounded overflow-x-auto">
+  <table class="w-full text-sm">
+    <thead class="bg-slate-100"><tr><th class="px-3 py-2 text-left">Asset</th><th class="px-3 py-2 text-left">Assigned</th><th class="px-3 py-2 text-left">Reason</th><th class="px-3 py-2 text-left">Current</th><th class="px-3 py-2 text-left">Start</th><th class="px-3 py-2 text-left">End</th></tr></thead>
+    <tbody>
+      {% for a in assignments %}
+      <tr class="border-t border-borderc"><td class="px-3 py-2"><a class="text-primary" href="{% url 'assets:asset_detail' a.asset_id %}">{{ a.asset }}</a></td><td class="px-3 py-2">{% if a.assigned_employee %}{{ a.assigned_employee.first_name }} {{ a.assigned_employee.last_name }}{% else %}-{% endif %}</td><td class="px-3 py-2">{{ a.reason.name }}</td><td class="px-3 py-2">{{ a.is_current|yesno:'Yes,No' }}</td><td class="px-3 py-2">{{ a.start_at }}</td><td class="px-3 py-2">{{ a.end_at|default:'-' }}</td></tr>
+      {% empty %}<tr><td class="px-3 py-2" colspan="6">No assignments.</td></tr>{% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}
